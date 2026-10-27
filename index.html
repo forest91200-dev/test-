@@ -4461,29 +4461,29 @@ const BK={
 /* =====================================================================
    BOMBE DES MOTS — un mot avec la syllabe, et la bombe passe au suivant
    ===================================================================== */
-const WB_ABC='abcdefghijlmnopqrstuv';
-const WB_DIFF={facile:{n:'Facile',s:'3 ❤ · indices',lives:3,sk:[.55,.85],lo0:900,lo1:70,ramp:70,hint:true,fuse:[13,22]},
-  normal:{n:'Normal',s:'2 ❤ · classique',lives:2,sk:[.75,1.15],lo0:700,lo1:22,ramp:45,hint:false,fuse:[11,20]},
-  difficile:{n:'Difficile',s:'syllabes rares',lives:2,sk:[1.05,1.4],lo0:260,lo1:12,ramp:30,hint:false,fuse:[9,16]}};
+const WB_ABC='abcdefghijlmnopqrstuv',WB_TURN=10;
+const WB_DIFF={facile:{n:'Facile',s:'3 ❤ · indices',lives:3,sk:[.55,.85],lo0:900,lo1:70,ramp:70,hint:true},
+  normal:{n:'Normal',s:'2 ❤ · classique',lives:2,sk:[.75,1.15],lo0:700,lo1:22,ramp:45,hint:false},
+  difficile:{n:'Difficile',s:'syllabes rares',lives:2,sk:[1.05,1.4],lo0:260,lo1:12,ramp:30,hint:false}};
 const WordBomb={id:'wordbomb',name:'Bombe des Mots',cursor:'default',bloom:.55,bloomTh:.82,grade:{sat:1.1,con:1.06,vig:.45},
-  tagline:'Tapez un mot qui contient la syllabe avant l’explosion, puis la bombe passe au suivant.',
-  howto:[['Mot + Entrée','Contient la syllabe · accents facultatifs · chaque mot une seule fois'],['Explosion','−1 cœur · lettres A à V toutes utilisées = +1 cœur']],
-  seeds(score){return score/12;},mode:'solo3',diff:'normal',fuseVis:false,
+  tagline:'Chacun a 10 secondes : tapez un mot qui contient la syllabe, et la bombe passe au suivant avec un temps tout neuf.',
+  howto:[['10 secondes chacun','Tapez un mot avec la syllabe + Entrée avant la fin de votre temps'],['Bombe qui explose','−1 cœur · lettres A à V toutes utilisées = +1 cœur']],
+  seeds(score){return score/12;},mode:'solo3',diff:'normal',
   introExtra(){const chip=(id,on,n,d,c)=>`<button class="wpick${on?' on':''}" data-world="${id}" style="--wc:${c}"><b>${n}</b>${d?`<span>${d}</span>`:''}</button>`,lab=t=>`<p class="kbd" style="margin:6px 0 2px;text-align:left;width:100%">${t}</p>`,row=(h,n)=>`<div class="worlds" style="grid-template-columns:repeat(${n},1fr)">${h}</div>`;
     return `<div style="width:100%">`+lab('Joueurs')+`<div class="worlds">${BK_MODES.map(m=>chip(m.id,m.id===this.mode,m.n,m.d,m.bots?'#ffc14d':'#8fe3ff')).join('')}</div>`
       +lab('Difficulté')+row(Object.entries(WB_DIFF).map(([k,v])=>chip('diff:'+k,k===this.diff,v.n,v.s,k==='facile'?'#7fd84a':k==='normal'?'#ffc14d':'#ff6a6a')).join(''),3)
-      +lab('Mèche')+row(chip('fuse:0',!this.fuseVis,'Cachée','surprise !','#c88bff')+chip('fuse:1',this.fuseVis,'Visible','jauge du temps','#8fe3ff'),2)+`</div>`;},
-  pickWorld(id){if(id.startsWith('diff:')){const k=id.slice(5);if(WB_DIFF[k])this.diff=k;}else if(id.startsWith('fuse:'))this.fuseVis=id==='fuse:1';else if(BK_MODES.find(m=>m.id===id))this.mode=id;else return;
-    try{localStorage.setItem('forest-games-wb',JSON.stringify({mode:this.mode,diff:this.diff,fuse:this.fuseVis}));}catch(e){}this.reset();},
-  build(){try{const v=JSON.parse(localStorage.getItem('forest-games-wb')||'{}');if(BK_MODES.find(m=>m.id===v.mode))this.mode=v.mode;if(WB_DIFF[v.diff])this.diff=v.diff;this.fuseVis=!!v.fuse;}catch(e){}
++`</div>`;},
+  pickWorld(id){if(id.startsWith('diff:')){const k=id.slice(5);if(WB_DIFF[k])this.diff=k;}else if(BK_MODES.find(m=>m.id===id))this.mode=id;else return;
+    try{localStorage.setItem('forest-games-wb',JSON.stringify({mode:this.mode,diff:this.diff}));}catch(e){}this.reset();},
+  build(){try{const v=JSON.parse(localStorage.getItem('forest-games-wb')||'{}');if(BK_MODES.find(m=>m.id===v.mode))this.mode=v.mode;if(WB_DIFF[v.diff])this.diff=v.diff;}catch(e){}
     BK.css();BK.scene(this);BK.loadDict();this.s={};this.players=[];
     // clavier mobile : on remonte la barre de saisie au-dessus du clavier
     if(window.visualViewport&&!this._vv){this._vv=true;const vv=window.visualViewport,f=()=>{const bar=document.querySelector('.bkbar');if(!bar)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);bar.style.bottom=kb>60?(kb+10)+'px':'';};vv.addEventListener('resize',f);vv.addEventListener('scroll',f);}},
   resize(w,h){BK.resize(this,w,h);},
   get D(){return WB_DIFF[this.diff]||WB_DIFF.normal;},
-  reset(){const mode=Shell.solo()?this.mode:'solo3',D=this.D;this.players=BK.makePlayers(this,mode,D.lives,D.sk);BK.seat(this,this.players);this.parts.clear();this.smoke.clear();
-    this.s={t:0,round:1,turns:0,cur:0,fuse:rnd(D.fuse[0],D.fuse[1]),fuse0:1,prompt:null,used:new Set(),recent:[],typed:'',bot:null,dead:false,deadT:0,sent:false,msg:null,tick:0,multi:this.players.filter(p=>p.kind!=='bot').length>1,longest:'',turnT:0,hint:'',promptT:0,sol:null,solT:0};
-    this.s.fuse0=this.s.fuse;this.holder=null;this.bomb.pos.set(0,0,0);this.ui();Shell.setScore(0);this.hud();},
+  reset(){const mode=Shell.solo()?this.mode:'solo3',D=this.D;this.players=BK.makePlayers(this,mode,D.lives,D.sk);if(this.diff==='facile')this.players.forEach(p=>{if(p.kind==='bot')p.lives=2;});BK.seat(this,this.players);this.parts.clear();this.smoke.clear();
+    this.s={t:0,round:1,turns:0,cur:0,fuse:WB_TURN,fuse0:WB_TURN,prompt:null,used:new Set(),recent:[],typed:'',bot:null,dead:false,deadT:0,sent:false,msg:null,tick:0,multi:this.players.filter(p=>p.kind!=='bot').length>1,longest:'',turnT:0,hint:'',promptT:0,sol:null,solT:0};
+    this.holder=null;this.bomb.pos.set(0,0,0);this.ui();Shell.setScore(0);this.hud();},
   start(){},
   leave(){$('#sTouch').innerHTML='';},
   ui(){$('#sTouch').innerHTML=`<div class="bkbar"><div class="bkwho" id="wbWho"></div><input class="bkin" id="wbIn" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" maxlength="32"><div class="bkabc" id="wbAbc"></div></div>`;
@@ -4497,14 +4497,15 @@ const WordBomb={id:'wordbomb',name:'Bombe des Mots',cursor:'default',bloom:.55,b
   // parcourt la liste à partir d'un point au hasard (sinon on n'aurait que des mots en A)
   scan(k,max,ok){const C=BK.common||[],N=C.length,out=[];if(!N)return out;const o=(Math.random()*N)|0;for(let i=0;i<N;i++){const w=C[(o+i)%N];if(w.includes(k)&&ok(w)){out.push(w);if(out.length>=max)break;}}return out;},
   solutions(k,n){const s=this.s,out=this.scan(k,40,w=>w.length>=4&&w.length<=9&&!s.used.has(w));return out.sort(()=>Math.random()-.5).slice(0,n).sort((a,b)=>a.length-b.length);},
-  turn(i){const s=this.s,p=this.players[i];s.cur=i;s.ph='turn';s.typed='';s.msg=null;s.turnT=0;s.hint='';this.holder=p;BK.giveBomb(this,p,s.turns===0&&!this.bomb.fly&&this.bomb.pos.lengthSq()<.01);s.fuse=Math.max(s.fuse,2.6);
+  turn(i){const s=this.s,p=this.players[i];s.cur=i;s.ph='turn';s.typed='';s.msg=null;s.turnT=0;s.hint='';this.holder=p;BK.giveBomb(this,p,s.turns===0&&!this.bomb.fly&&this.bomb.pos.lengthSq()<.01);s.fuse=s.fuse0=WB_TURN;s.tick=0;s.sec=WB_TURN;
     const inp=this.inp;if(p.kind==='bot'){this.planBot(p);if(inp){inp.value='';inp.disabled=true;inp.placeholder=`${p.name} cherche…`;}this.who(`${p.name} a la bombe`);}
     else{s.bot=null;if(inp){inp.disabled=false;inp.value='';inp.placeholder=`Un mot avec « ${s.prompt.k.toUpperCase()} »`;try{inp.focus({preventScroll:true});}catch(e){}}this.who(s.multi?`À <b style="color:#${new THREE.Color(p.col).getHexString()}">${p.name}</b> de jouer !`:'À vous !');if(s.multi)S.bell(880,.06,.3);}
     this.abcUI(p);},
   planBot(p){const s=this.s,k=s.prompt.k,C=BK.common||[k+'zz'],cand=this.scan(k,400,w=>w.length>=4&&w.length<=11&&!s.used.has(w));
-    const n=cand.length,base=n>=150?.96:n>=50?.88:n>=15?.72:n>=5?.55:n>0?.35:0,pOk=clamp(base*p.skill,0,.985);
-    const ok=Math.random()<pOk&&n>0;let word;if(ok){const lng=cand.filter(w=>w.length>=7),pool=p.skill>1&&lng.length&&Math.random()<.4?lng:cand;word=pool[(Math.random()*pool.length)|0];}else{const r=C[(Math.random()*C.length)|0];word=Math.random()<.5||!n?r:cand[(Math.random()*n)|0].slice(0,-1)+'z';}
-    s.bot={word,ok,think:(rnd(.5,1.3)+(n<15?rnd(.6,1.6):0))/p.skill,typed:0,rate:(6+4*p.skill),wait:0};},
+    // réussite décidée une fois par tour : un animal qui « sèche » se trompe 1 ou 2 fois puis reste bloqué jusqu'à l'explosion
+    const n=cand.length;if(s.botTurn!==s.turns+':'+s.round){s.botTurn=s.turns+':'+s.round;const base=n>=150?.95:n>=50?.9:n>=15?.75:n>=5?.55:n>0?.35:0;s.botWin=n>0&&Math.random()<clamp(base-(1-p.skill)*.3,.08,.985);s.botTries=0;}
+    s.botTries=(s.botTries||0)+1;const ok=s.botWin&&(s.botTries>1||Math.random()<.85);let word;if(ok){const lng=cand.filter(w=>w.length>=7),pool=p.skill>1&&lng.length&&Math.random()<.4?lng:cand;word=pool[(Math.random()*pool.length)|0];}else{const r=C[(Math.random()*C.length)|0];word=Math.random()<.5||!n?r:cand[(Math.random()*n)|0].slice(0,-1)+'z';}
+    s.bot={word,ok,think:(rnd(.5,1.3)+(n<15?rnd(.6,1.6):0))/p.skill+(!s.botWin&&s.botTries>2?99:0),typed:0,rate:(6+4*p.skill),wait:0};},
   submit(i,raw){const s=this.s,p=this.players[i];if(s.ph!=='turn'||i!==s.cur)return;const w=BK.norm(raw),k=s.prompt.k;let err=null;
     if(!w)return;if(!w.includes(k))err=`Pas de « ${k.toUpperCase()} »`;else if(BK.ready&&!BK.dict.has(w))err='Mot inconnu';else if(s.used.has(w))err='Déjà utilisé';else if(w.length<3)err='Trop court';
     if(err){s.msg={t:err,c:'#ff6a7a',life:1.2,who:p};S.tone({wave:'square',f0:180,f1:120,dur:.12,gain:.06});if(p.kind!=='bot'&&this.inp){this.inp.classList.remove('bad');void this.inp.offsetWidth;this.inp.classList.add('bad');this.inp.select();}return false;}
@@ -4522,7 +4523,7 @@ const WordBomb={id:'wordbomb',name:'Bombe des Mots',cursor:'default',bloom:.55,b
     if(p.lives<=0){p.alive=false;Shell.pop(`${p.name} ${p.kind==='me'?'êtes éliminé':'est éliminé'} !`,W/2,H*.3,'bad');}else Shell.pop(`${p.kind==='me'?'Boum ! −1 cœur':'Boum sur '+p.name+' !'}`,W/2,H*.3,'bad');
     const alive=this.players.filter(q=>q.alive),me=this.players.find(q=>q.kind==='me');
     if(me&&!me.alive){this.finish(false);return;}if(alive.length<=1){this.finish(true);return;}
-    const D=this.D;s.ph='pause';s.pauseT=2.2;s.fuse=rnd(Math.max(D.fuse[0]-4,D.fuse[0]-s.round*.3),Math.max(D.fuse[1]-8,D.fuse[1]-s.round*.6));s.fuse0=s.fuse;this.pickPrompt();s.nextI=BK.nextAlive(this,s.cur);this.hud();if(this.inp){this.inp.disabled=true;this.inp.value='';}this.who('');},
+    const D=this.D;s.ph='pause';s.pauseT=2.2;s.fuse=WB_TURN;this.pickPrompt();s.nextI=BK.nextAlive(this,s.cur);this.hud();if(this.inp){this.inp.disabled=true;this.inp.value='';}this.who('');},
   finish(win){const s=this.s;s.dead=true;s.deadT=0;s.ph='end';if(this.inp){this.inp.disabled=true;this.inp.value='';this.inp.placeholder='';}this.who('');this.abcUI(null);const alive=this.players.filter(q=>q.alive);
     if(s.multi){const w=alive[0];s.reason=w?`${w.name} gagne !`:'Égalité';s.final=w?w.score:0;Shell.pop(s.reason,W/2,H*.25,'big');S.win();}
     else{const me=this.players.find(q=>q.kind==='me');if(win&&me.alive){const b=150+me.lives*30+(this.diff==='difficile'?100:0);me.score+=b;Shell.setScore(me.score);s.reason='Vous êtes le dernier debout !';Shell.pop('Victoire !<small>+'+b+'</small>',W/2,H*.25,'big');S.win();}else s.reason='Éliminé par la bombe';s.final=me.score;}},
@@ -4531,9 +4532,9 @@ const WordBomb={id:'wordbomb',name:'Bombe des Mots',cursor:'default',bloom:.55,b
   update(dt,st){const s=this.s,play=st==='play'&&!s.dead;s.tt=(s.tt||0)+dt;s.promptT=Math.max(0,s.promptT-dt*3);s.solT=Math.max(0,s.solT-dt);
     if(play){if(!s.prompt){if(BK.ready||BK.err){this.pickPrompt();this.turn(this.players.findIndex(p=>p.kind!=='bot'));}}
       else{s.t+=dt;if(Math.floor(s.t)!==Math.floor(s.t-dt))this.hud();
-        if(s.ph==='turn'){s.fuse-=dt;s.turnT+=dt;s.tick-=dt;const danger=s.fuse<3;if(s.tick<=0){s.tick=danger?.22:.5;S.tone({wave:'square',f0:danger?1200:900,dur:.03,gain:danger?.05:.03});}
+        if(s.ph==='turn'){s.fuse-=dt;s.turnT+=dt;s.tick-=dt;const danger=s.fuse<3;if(s.tick<=0){s.tick=danger?.25:.5;S.tone({wave:'square',f0:danger?1200:900,dur:.03,gain:danger?.05:.03});}const sec=Math.ceil(s.fuse);if(sec!==s.sec){s.sec=sec;if(sec<=3&&sec>0)S.tone({wave:'triangle',f0:660+(3-sec)*220,dur:.12,gain:.07});}
           const b=s.bot,p=this.players[s.cur];
-          if(p.kind!=='bot'&&this.D.hint&&BK.common){const lvl=s.turnT>9?2:s.turnT>5?1:0;if(lvl&&s.hintLvl!==lvl+':'+s.turns){s.hintLvl=lvl+':'+s.turns;if(!s.hintW||!s.hintW.includes(s.prompt.k))s.hintW=this.solutions(s.prompt.k,1)[0]||'';const w=s.hintW;if(w){const n=lvl===1?Math.max(2,Math.ceil(w.length/3)):Math.ceil(w.length*.6);this.who(`Indice : <b style="color:#ffc14d;letter-spacing:.12em">${w.slice(0,n).toUpperCase()}${'·'.repeat(w.length-n)}</b>`);}}}
+          if(p.kind!=='bot'&&this.D.hint&&BK.common){const lvl=s.turnT>7?2:s.turnT>4?1:0;if(lvl&&s.hintLvl!==lvl+':'+s.turns){s.hintLvl=lvl+':'+s.turns;if(!s.hintW||!s.hintW.includes(s.prompt.k))s.hintW=this.solutions(s.prompt.k,1)[0]||'';const w=s.hintW;if(w){const n=lvl===1?Math.max(2,Math.ceil(w.length/3)):Math.ceil(w.length*.6);this.who(`Indice : <b style="color:#ffc14d;letter-spacing:.12em">${w.slice(0,n).toUpperCase()}${'·'.repeat(w.length-n)}</b>`);}}}
           if(b&&p.kind==='bot'){if(b.think>0)b.think-=dt;else if(b.typed<b.word.length){b.typed=Math.min(b.word.length,b.typed+dt*b.rate);s.typed=b.word.slice(0,Math.floor(b.typed));if(Math.random()<dt*b.rate)S.tone({wave:'triangle',f0:rnd(500,700),dur:.02,gain:.015});}
             else{b.wait+=dt;if(b.wait>.18){const ok=this.submit(s.cur,b.word);if(ok===false){this.planBot(p);this.s.bot.think*=.8;}}}}
           if(s.fuse<=0&&s.ph==='turn')this.boom();}
@@ -4550,7 +4551,8 @@ const WordBomb={id:'wordbomb',name:'Bombe des Mots',cursor:'default',bloom:.55,b
     if(s.prompt&&!s.dead){const v=new THREE.Vector3(0,1.6,-.2);const sp=toScreen(v,this.camera),txt=s.prompt.k.toUpperCase(),fs=Math.max(28,Math.min(46,W/22))*(1+s.promptT*.25);g.save();g.font=`900 ${fs}px "Chakra Petch", system-ui, sans-serif`;const w=Math.max(fs*2.2,g.measureText(txt).width+34),h=fs*1.45;
       const danger=s.ph==='turn'&&s.fuse<3;g.fillStyle='rgba(7,12,20,.9)';g.strokeStyle=danger?'#ff5a4a':'rgba(246,236,216,.25)';g.lineWidth=danger?3:2;g.beginPath();g.roundRect?g.roundRect(sp[0]-w/2,sp[1]-h,w,h,12):g.rect(sp[0]-w/2,sp[1]-h,w,h);g.fill();g.stroke();
       g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,sp[0],sp[1]-h/2+2);const n=s.prompt.d;g.font='700 11px system-ui';g.fillStyle='rgba(246,236,216,.6)';g.textAlign='right';g.fillText(n>=1000?Math.round(n/1000)+'K':String(n),sp[0]+w/2-6,sp[1]-8);
-      if(this.fuseVis&&(s.ph==='turn'||s.ph==='pause')){const k=clamp(s.fuse/s.fuse0,0,1),bw=w,by=sp[1]+8;g.fillStyle='rgba(0,0,0,.5)';g.fillRect(sp[0]-bw/2,by,bw,7);g.fillStyle=k<.25?'#ff5a4a':k<.5?'#ffc14d':'#7fd84a';g.fillRect(sp[0]-bw/2,by,bw*k,7);}
+      if(s.ph==='turn'){const k=clamp(s.fuse/s.fuse0,0,1),bw=w,by=sp[1]+8,col=k<.3?'#ff5a4a':k<.6?'#ffc14d':'#7fd84a';g.fillStyle='rgba(0,0,0,.55)';g.fillRect(sp[0]-bw/2,by,bw,8);g.fillStyle=col;g.fillRect(sp[0]-bw/2,by,bw*k,8);
+        const sz=Math.max(18,fs*.55)*(s.fuse<3?1+Math.max(0,Math.sin(s.tt*12))*.15:1);g.font=`900 ${sz}px "Chakra Petch", system-ui, sans-serif`;g.textAlign='center';g.textBaseline='top';g.fillStyle=col;g.lineWidth=4;g.strokeStyle='rgba(0,0,0,.7)';const tx=Math.ceil(s.fuse)+' s';g.strokeText(tx,sp[0],by+12);g.fillText(tx,sp[0],by+12);}
       g.restore();}
     if(s.sol&&s.solT>0&&s.sol.w.length){g.save();g.globalAlpha=Math.min(1,s.solT*1.5);const fs=Math.max(13,Math.min(17,W/55));g.font=`700 ${fs}px "Chakra Petch", system-ui`;g.textAlign='center';const txt=`Il fallait : ${s.sol.w.map(x=>x.toUpperCase()).join(' · ')}`,y=H*.4;const w=g.measureText(txt).width+28;
       g.fillStyle='rgba(7,12,20,.85)';g.beginPath();g.roundRect?g.roundRect(W/2-w/2,y-fs-8,w,fs+18,10):g.rect(W/2-w/2,y-fs-8,w,fs+18);g.fill();g.fillStyle='#ffe08a';g.fillText(txt,W/2,y+2);g.restore();}
@@ -6637,7 +6639,7 @@ const LIST=[
   {id:'luge',name:'Descente des Cimes',desc:'Luge sur une piste glacée : virages relevés, portes dorées et tremplins.',c:'#8fd0ff'},
   {id:'basket',name:'Panier des Lucioles',desc:'Basket arcade en 60 secondes : panier mobile, tirs à 3 points et ballon en feu.',c:'#ff8a3a'},
   {id:'boat',name:'Rapides de la Rivière',desc:'Course de canoës de 1 500 m : rapides, chutes d’eau et trois rivaux.',c:'#3ad6c0'},
-  {id:'wordbomb',name:'Bombe des Mots',desc:'Un mot avec la syllabe avant que la bombe explose. 3 difficultés, mèche cachée ou visible, solo ou jusqu’à 4 joueurs.',c:'#ff7a3a'},
+  {id:'wordbomb',name:'Bombe des Mots',desc:'10 secondes chacun pour taper un mot avec la syllabe, puis la bombe passe au suivant. Solo ou jusqu’à 4 joueurs.',c:'#ff7a3a'},
   {id:'merge',name:'Fusion des Glands',desc:'Glissez les tuiles sur la souche : deux identiques fusionnent. Atteindrez-vous 2048 ?',c:'#ecc850'},
   {id:'axe',name:'Lancer de Haches',desc:'Plantez vos haches dans la bûche qui tourne sans toucher les autres. 3 cœurs, un chêne maudit toutes les 5 bûches.',c:'#ff9a40'},
   {id:'berry',name:'Baies de la Forêt',desc:'Alignez les baies, créez des baies rayées, des bombes et des glands dorés, remplissez les paniers.',c:'#ff3a4a'},
