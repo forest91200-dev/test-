@@ -3605,10 +3605,10 @@ const Brick={id:'brick',name:'Casse-Lanternes',cursor:'none',bloom:.45,bloomTh:.
 /* =====================================================================
    TAUPES DE LA CLAIRIÈRE — tape-taupe en 60 secondes
    ===================================================================== */
-const MO_T={norm:{pts:10,hp:1},helm:{pts:25,hp:2},gold:{pts:100,hp:1,rare:1},diam:{pts:250,hp:1,rare:1},king:{pts:150,hp:3,rare:1},hog:{pts:-30,hp:1}};
+const MO_T={norm:{pts:10,hp:1},helm:{pts:25,hp:2},gold:{pts:100,hp:1,rare:1},diam:{pts:250,hp:1,rare:1},king:{pts:150,hp:1,rare:1},hog:{pts:-30,hp:1}};
 const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,bloomTh:.86,grade:{sat:1.12,con:1.06,vig:.35},
   tagline:'60 secondes : une taupe sort à la fois, parfois avec un hérisson piégé à côté. Tapez la bonne… et guettez les taupes rares !',
-  howto:[['Clic ou toucher','Taper la taupe · casquée : deux coups · parfois un hérisson piégé à côté (−3 s)'],['Taupes rares, très rapides','Dorée +100 · diamant +250 · roi des taupes (3 coups) +150'],['10 dernières secondes','Seul le roi des taupes sort, en un coup, plus vite que toutes les autres']],
+  howto:[['Clic ou toucher','Taper la taupe · casquée : deux coups · parfois un hérisson piégé à côté (−3 s)'],['Taupes rares, très rapides','Dorée +100 · diamant +250'],['10 dernières secondes','Le roi des taupes arrive : ultra-rapide, un seul coup, +150… et il se moque de vous s’il s’échappe']],
   seeds(score){return score/40;},
   build(){const sc=this.scene=new THREE.Scene();sc.background=skyTex('#081420','#16303c','#2c4a4a',200);sc.fog=new THREE.Fog(0x16303c,16,45);
     this.camera=new THREE.PerspectiveCamera(46,1,.1,120);
@@ -3633,13 +3633,13 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
     const add=(m,sx,sy,sz,x,y,z)=>{const k=new THREE.Mesh(this.SG,m);k.scale.set(sx,sy,sz);k.position.set(x,y,z);k.castShadow=true;g.add(k);return k;};
     const body=add(fur,.5,.62,.46,0,.45,0),belly=add(cream,.34,.42,.2,0,.4,.3);const snout=add(pink,.14,.11,.12,0,.62,.46);
     const eyes=[-.15,.15].map(x=>add(blk,.05,.06,.04,x,.78,.4));const paws=[-1,1].map(sd=>add(pink,.12,.07,.1,sd*.3,.32,.4));
-    const teeth=add(M(0xffffff),.05,.05,.03,0,.52,.5);
+    const teeth=add(M(0xffffff),.05,.05,.03,0,.52,.5);const tongue=add(M(0xff5a7a),.08,.03,.12,0,.47,.52);tongue.visible=false;
     const helm=new THREE.Group();const hm=new THREE.Mesh(new THREE.SphereGeometry(.52,14,8,0,6.283,0,1.4),M(0x8a909a,{metalness:.6,roughness:.35}));hm.position.y=.72;helm.add(hm);const lamp=new THREE.Mesh(this.SG,M(0xfff0b0,{emissive:0xffe080,emissiveIntensity:1.4}));lamp.scale.setScalar(.1);lamp.position.set(0,1.02,.36);helm.add(lamp);g.add(helm);
     const spikes=new THREE.Group();for(let i=0;i<26;i++){const a=rnd(-2.6,2.6),e=rnd(.2,1.4),sp=new THREE.Mesh(new THREE.ConeGeometry(.05,.3,4),M(0x3a2a20));sp.position.set(Math.sin(a)*Math.sin(e)*.5,.45+Math.cos(e)*.6,-Math.abs(Math.cos(a))*Math.sin(e)*.45);sp.lookAt(sp.position.x*3,sp.position.y*2-.4,sp.position.z*3);sp.rotateX(Math.PI/2);spikes.add(sp);}g.add(spikes);
     const crown=new THREE.Group(),gm=M(0xffc83a,{metalness:.7,roughness:.25,emissive:0x664400,emissiveIntensity:.5});const ring=new THREE.Mesh(new THREE.CylinderGeometry(.26,.28,.14,12,1,true),gm);ring.position.y=1.08;crown.add(ring);for(let i=0;i<5;i++){const a=i/5*6.283,sp=new THREE.Mesh(new THREE.ConeGeometry(.07,.2,5),gm);sp.position.set(Math.cos(a)*.24,1.22,Math.sin(a)*.24);crown.add(sp);}const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.07,0),M(0xff3a5a,{emissive:0x801020}));gem.position.set(0,1.1,.27);crown.add(gem);g.add(crown);
     const shine=glowSprite(0x9ff4ff,.9);shine.scale.setScalar(2.2);shine.position.y=.6;g.add(shine);
     const stars=new THREE.Group();for(let i=0;i<4;i++){const st=glowSprite(0xffe08a,.9);st.scale.setScalar(.35);stars.add(st);}stars.position.y=1.15;g.add(stars);
-    return{g,fur,body,snout,helm,spikes,stars,eyes,crown,shine};},
+    return{g,fur,body,snout,helm,spikes,stars,eyes,crown,shine,tongue};},
   setType(h,type){const m=h.mole;h.type=type;h.hp=MO_T[type].hp;m.helm.visible=type==='helm';m.spikes.visible=type==='hog';m.crown.visible=type==='king';m.shine.visible=type==='diam'||type==='gold';m.shine.material.color.setHex(type==='gold'?0xffd27a:0x9ff4ff);m.fur.color.setHex(type==='gold'?0xffc14d:type==='diam'?0x8fe8ff:type==='king'?0x8a4ab8:type==='hog'?0x7a6a5a:0x6a4a34);m.fur.emissive=m.fur.emissive||new THREE.Color();m.fur.emissive.setHex(type==='gold'?0x7a5000:type==='diam'?0x1a6080:0);m.fur.metalness=type==='diam'?.4:0;m.snout.material.color.setHex(type==='hog'?0x3a2a20:0xff9aa8);m.stars.visible=false;},
   resize(w,h){const c=this.camera;c.aspect=w/h;this.portrait=w/h<.8;c.fov=this.portrait?64:44;c.updateProjectionMatrix();const k=H*DPR/(2*Math.tan(c.fov*Math.PI/360));this.parts.setScale(k,true);this.smoke.setScale(k,true);},
   reset(){this.s={score:0,time:60,t:0,spawnT:.8,combo:0,best:0,hits:0,clicks:0,golds:0,hogs:0,missed:0,dead:false,sent:false,endT:0};for(const h of this.holes){h.st='down';h.y=-1.2;h.mole.g.position.y=-1.2;}this.parts.clear();this.smoke.clear();Shell.setScore(0);this.hud();},
@@ -3647,17 +3647,20 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
   hud(){const s=this.s,m=Math.max(0,Math.ceil(s.time));$('#sExtra').innerHTML=`<div class="race"><b style="color:${m<=10?'#ff6a7a':'inherit'}">${m} s</b><span>${s.combo>=5?'Combo ×'+this.mult().toString().replace('.',','):'Tapez les taupes !'}</span></div>`;},
   mult(){return Math.min(3,1+Math.floor(this.s.combo/5)*.5);},
   spawn(){const s=this.s,free=this.holes.filter(h=>h.st==='down');if(free.length<2)return;const el=60-s.time,q=Math.random();let type;
-    if(el>8&&q<.03)type='diam';else if(el>12&&q<.07)type='king';else if(q<.14)type='gold';else if(q<.38+Math.min(.12,el*.003))type='helm';else type='norm';
+    if(el>8&&q<.03)type='diam';else if(q<.14)type='gold';else if(q<.38+Math.min(.12,el*.003))type='helm';else type='norm';
     const pick=()=>free.splice((Math.random()*free.length)|0,1)[0],fin=s.time<=10&&!s.dead&&Shell.state==='play';if(fin)type='king';const h=pick();this.setType(h,type);
-    if(fin){h.hp=1;h.st='rise';h.t=0;h.dur=.26;S.bell(1760,.06,.25);return;}
+    if(fin){h.hp=1;h.st='rise';h.t=0;h.dur=.26;S.bell(1760,.06,.25);if(Math.random()<.25){const sp=toScreen(new V3(h.x,1.7,h.z),this.camera);Shell.pop(['Coucou !','Par ici !','Trop facile…'][(Math.random()*3)|0],sp[0],sp[1],'combo','#c88bff');}return;}
     const base=Math.max(.52,.85-el*.0055);h.st='rise';h.t=0;h.dur=type==='diam'?.3:type==='gold'?.4:type==='king'?1.1:type==='helm'?base*1.2:base;
     // hérisson piégé à côté, au hasard (de plus en plus souvent)
     if(Math.random()<Math.min(.55,.3+el*.005)){const t=pick();this.setType(t,'hog');t.st='rise';t.t=0;t.dur=Math.max(h.dur,.6);}
     if(MO_T[type].rare){S.bell(type==='diam'?2093:1568,.07,.35);for(let i=0;i<14;i++)this.parts.emit(h.x,.4,h.z,rnd(-1.5,1.5),rnd(1,3),rnd(-1.5,1.5),type==='diam'?0x9ff4ff:type==='gold'?0xffd27a:0xc88bff,rnd(.06,.12),rnd(.3,.6),3);}
     else S.tone({wave:'sine',f0:220,f1:340,dur:.08,gain:.04});},
-  safeUp(){return this.holes.some(h=>h.type!=='hog'&&(h.st==='rise'||h.st==='up'));},
+  taunt(h){const T=['Trop lent !','Nananère !','Attrape-moi si tu peux !','Hé hé, raté !','Même pas peur !','Bisous ! 😘','Tu dors ?'],sp=toScreen(new V3(h.x,1.6,h.z),this.camera);Shell.pop(T[(Math.random()*T.length)|0],sp[0],sp[1],'bad','#c88bff');
+    [700,560,700,470].forEach((f,i)=>S.tone({wave:'square',f0:f,f1:f*.92,dur:.09,gain:.05,delay:i*.09}));},
+  safeUp(){return this.holes.some(h=>h.type!=='hog'&&(h.st==='rise'||h.st==='up'||h.st==='taunt'));},
+  safeUp0(){return this.holes.some(h=>h.type!=='hog'&&(h.st==='rise'||h.st==='up'));},
   ray(x,y){const c=this.camera,o=c.position,d=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,.5).unproject(c).sub(o).normalize();let best=null,bt=1e9;
-    for(const h of this.holes){if(h.st==='down'||h.st==='hit'||h.y<-.7)continue;const p=new THREE.Vector3(h.x,h.y+.55,h.z),v=p.clone().sub(o),t=v.dot(d),d2=v.lengthSq()-t*t;if(t>0&&d2<(.62*.62)&&t<bt){bt=t;best=h;}}
+    for(const h of this.holes){if(h.st==='down'||h.st==='hit'||h.st==='taunt'||h.y<-.7)continue;const p=new THREE.Vector3(h.x,h.y+.55,h.z),v=p.clone().sub(o),t=v.dot(d),d2=v.lengthSq()-t*t;if(t>0&&d2<(.62*.62)&&t<bt){bt=t;best=h;}}
     const t0=-o.y/d.y,gp=o.clone().addScaledVector(d,t0);return{h:best,gp};},
   down(x,y){const s=this.s;if(Shell.state!=='play'||s.dead)return;s.clicks++;const r=this.ray(x,y),h=r.h,at=h?new V3(h.x,0,h.z):r.gp;this.mal.t=0;this.mal.x=at.x;this.mal.z=at.z+.25;
     if(!h){s.combo=0;S.tone({wave:'triangle',f0:180,f1:120,dur:.08,gain:.06});for(let i=0;i<6;i++)this.smoke.emit(at.x,.1,at.z,rnd(-1,1),rnd(.3,1),rnd(-1,1),0x5a4a30,rnd(.08,.14),rnd(.3,.5),2);this.hud();return;}
@@ -3676,7 +3679,8 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
     else if(st==='intro'){if(!this.safeUp()){s.spawnT-=dt;if(s.spawnT<=0){this.spawn();s.spawnT=rnd(.5,.9);}}}
     for(const h of this.holes){h.t+=dt;const m=h.mole;
       if(h.st==='rise'){h.y=lerp(-1.2,0,Math.min(1,h.t/.09));if(h.t>=.09){h.st='up';h.t=0;}}
-      else if(h.st==='up'){h.y=Math.sin(h.t*8)*.03;if(h.t>=h.dur){h.st='fall';h.t=0;if(play&&h.type!=='hog'){s.missed++;if(s.combo>0)s.combo=Math.max(0,s.combo-2);}}}
+      else if(h.st==='up'){h.y=Math.sin(h.t*8)*.03;if(h.t>=h.dur){h.st=h.type==='king'?'taunt':'fall';h.t=0;if(play&&h.type!=='hog'){s.missed++;if(s.combo>0)s.combo=Math.max(0,s.combo-2);}if(h.st==='taunt')this.taunt(h);}}
+      else if(h.st==='taunt'){h.y=.15+Math.abs(Math.sin(h.t*18))*.25;m.g.rotation.z=Math.sin(h.t*24)*.35;m.tongue.visible=true;if(h.t>=.55){h.st='fall';h.t=0;m.g.rotation.z=0;m.tongue.visible=false;}}
       else if(h.st==='fall'){h.y=lerp(0,-1.2,Math.min(1,h.t/.13));if(h.t>=.13)h.st='down';}
       else if(h.st==='hit'){h.y=h.t<.12?-.25*h.t/.12:lerp(-.25,-1.2,Math.min(1,(h.t-.12)/.25));m.g.scale.set(1+.3*Math.max(0,1-h.t*6),1-.35*Math.max(0,1-h.t*6),1+.3*Math.max(0,1-h.t*6));m.stars.rotation.y+=dt*8;m.stars.children.forEach((c,i)=>{const a=i/4*6.28+s.t*6;c.position.set(Math.cos(a)*.4,0,Math.sin(a)*.4);});if(h.t>.4){h.st='down';m.g.scale.set(1,1,1);m.stars.visible=false;}}
       m.g.position.y=h.y;m.g.visible=h.st!=='down';m.g.rotation.y=Math.sin(s.t*2+h.x)*.25;m.eyes.forEach(e=>e.scale.y=(Math.sin(s.t*3+h.z*5)>.97?.01:.06));}
