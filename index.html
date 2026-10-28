@@ -3661,11 +3661,17 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'crosshair',bloom:.5
     [700,560,700,470].forEach((f,i)=>S.tone({wave:'square',f0:f,f1:f*.92,dur:.09,gain:.05,delay:i*.09}));},
   safeUp(){return this.holes.some(h=>h.type!=='hog'&&(h.st==='rise'||h.st==='up'||h.st==='taunt'));},
   safeUp0(){return this.holes.some(h=>h.type!=='hog'&&(h.st==='rise'||h.st==='up'));},
-  ray(x,y){const c=this.camera,o=c.position,d=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,.5).unproject(c).sub(o).normalize();let best=null,bt=1e9;
-    for(const h of this.holes){if(h.st==='down'||h.st==='hit'||h.st==='taunt'||h.y<-.7)continue;const p=new THREE.Vector3(h.x,h.y+.55,h.z),v=p.clone().sub(o),t=v.dot(d),d2=v.lengthSq()-t*t;if(t>0&&d2<(.62*.62)&&t<bt){bt=t;best=h;}}
-    const t0=-o.y/d.y,gp=o.clone().addScaledVector(d,t0);return{h:best,gp};},
-  down(x,y){const s=this.s;if(Shell.state!=='play'||s.dead)return;s.clicks++;const r=this.ray(x,y),h=r.h,at=h?new V3(h.x,Math.max(.2,h.y+.95),h.z):new V3(r.gp.x,0,r.gp.z);Object.assign(this.mal,{t:0,x:at.x,y:at.y,z:at.z,hit:!!h});
-    if(!h){s.combo=0;S.tone({wave:'triangle',f0:180,f1:120,dur:.08,gain:.06});for(let i=0;i<6;i++)this.smoke.emit(at.x,.1,at.z,rnd(-1,1),rnd(.3,1),rnd(-1,1),0x5a4a30,rnd(.08,.14),rnd(.3,.5),2);this.hud();return;}
+  // visée : on teste toute la hauteur de la bête (et un peu autour) pour que le coup tombe là où on la voit
+  ray(x,y){const c=this.camera,o=c.position,d=new THREE.Vector3((x/W)*2-1,-(y/H)*2+1,.5).unproject(c).sub(o).normalize();let best=null,bt=1e9;const v=new THREE.Vector3();
+    for(const h of this.holes){if(h.st==='down'||h.st==='hit'||h.st==='taunt'||h.y<-1)continue;let dmin=1e9,tb=0;
+      for(let k=0;k<=6;k++){v.set(h.x,h.y+k*.22,h.z).sub(o);const t=v.dot(d),d2=v.lengthSq()-t*t;if(t>0&&d2<dmin){dmin=d2;tb=t;}}
+      if(dmin<.74*.74&&tb<bt){bt=tb;best=h;}}
+    const t0=-o.y/d.y,gp=o.clone().addScaledVector(d,t0);
+    if(!best){let bd=.95;for(const h of this.holes){if(h.st==='down'||h.st==='hit'||h.st==='taunt'||h.y<-.9)continue;const dd=Math.hypot(gp.x-h.x,gp.z-h.z);if(dd<bd){bd=dd;best=h;}}}
+    // point visé à hauteur de tête de taupe (pour que le maillet tombe sous le curseur même dans le vide)
+    const t1=(.6-o.y)/d.y,hp=o.clone().addScaledVector(d,t1);return{h:best,gp,hp};},
+  down(x,y){const s=this.s;if(Shell.state!=='play'||s.dead)return;s.clicks++;const r=this.ray(x,y),h=r.h,at=h?new V3(h.x,Math.max(.2,h.y+.95),h.z):new V3(r.hp.x,.6,r.hp.z);Object.assign(this.mal,{t:0,x:at.x,y:at.y,z:at.z,hit:!!h});
+    if(!h){s.combo=0;S.tone({wave:'triangle',f0:180,f1:120,dur:.08,gain:.06});for(let i=0;i<6;i++)this.smoke.emit(r.gp.x,.1,r.gp.z,rnd(-1,1),rnd(.3,1),rnd(-1,1),0x5a4a30,rnd(.08,.14),rnd(.3,.5),2);this.hud();return;}
     const sp=toScreen(new V3(h.x,h.y+1.3,h.z),this.camera);
     if(h.type==='fake'){s.combo=0;s.fakes=(s.fakes||0)+1;s.score=Math.max(0,s.score+MO_T.fake.pts);Shell.setScore(s.score);h.st='taunt';h.t=0;Shell.pop('LOOSER !<small>c’était le faux roi · −50</small>',sp[0],sp[1],'big','#ff6a7a');[880,660,880,520,440].forEach((f,i)=>S.tone({wave:'square',f0:f,f1:f*.9,dur:.1,gain:.06,delay:i*.08}));this.hud();return;}
     if(h.type==='hog'){s.time=Math.max(0,s.time-3);s.combo=0;s.hogs++;s.score=Math.max(0,s.score+MO_T.hog.pts);Shell.setScore(s.score);h.st='hit';h.t=0;Shell.pop('Aïe, un hérisson !<small>−3 s</small>',sp[0],sp[1],'bad');S.tone({wave:'square',f0:400,f1:150,dur:.25,gain:.1});this.hud();return;}
