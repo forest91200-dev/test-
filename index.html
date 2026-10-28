@@ -3605,10 +3605,10 @@ const Brick={id:'brick',name:'Casse-Lanternes',cursor:'none',bloom:.45,bloomTh:.
 /* =====================================================================
    TAUPES DE LA CLAIRIÈRE — tape-taupe en 60 secondes
    ===================================================================== */
-const MO_T={norm:{pts:10,hp:1},helm:{pts:25,hp:2},gold:{pts:100,hp:1,rare:1},diam:{pts:250,hp:1,rare:1},king:{pts:150,hp:1,rare:1},hog:{pts:-30,hp:1}};
+const MO_T={norm:{pts:10,hp:1},helm:{pts:25,hp:2},gold:{pts:100,hp:1,rare:1},diam:{pts:250,hp:1,rare:1},king:{pts:150,hp:1,rare:1},fake:{pts:-50,hp:1},hog:{pts:-30,hp:1}};
 const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,bloomTh:.86,grade:{sat:1.12,con:1.06,vig:.35},
   tagline:'60 secondes : une taupe sort à la fois, parfois avec un hérisson piégé à côté. Tapez la bonne… et guettez les taupes rares !',
-  howto:[['Clic ou toucher','Taper la taupe · casquée : deux coups · parfois un hérisson piégé à côté (−3 s)'],['Taupes rares, très rapides','Dorée +100 · diamant +250'],['10 dernières secondes','Le roi des taupes arrive : ultra-rapide, un seul coup, +150… et il se moque de vous s’il s’échappe']],
+  howto:[['Clic ou toucher','Taper la taupe · casquée : deux coups · parfois un hérisson piégé à côté (−3 s)'],['Taupes rares, très rapides','Dorée +100 · diamant +250'],['15 dernières secondes','Le roi des taupes : ultra-rapide, un coup, +150… mais parfois un faux roi sort avec lui !']],
   seeds(score){return score/40;},
   build(){const sc=this.scene=new THREE.Scene();sc.background=skyTex('#081420','#16303c','#2c4a4a',200);sc.fog=new THREE.Fog(0x16303c,16,45);
     this.camera=new THREE.PerspectiveCamera(46,1,.1,120);
@@ -3648,8 +3648,8 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
   mult(){return Math.min(3,1+Math.floor(this.s.combo/5)*.5);},
   spawn(){const s=this.s,free=this.holes.filter(h=>h.st==='down');if(free.length<2)return;const el=60-s.time,q=Math.random();let type;
     if(el>8&&q<.03)type='diam';else if(q<.14)type='gold';else if(q<.38+Math.min(.12,el*.003))type='helm';else type='norm';
-    const pick=()=>free.splice((Math.random()*free.length)|0,1)[0],fin=s.time<=10&&!s.dead&&Shell.state==='play';if(fin){type='king';const i=free.indexOf(s.lastKing);if(i>=0&&free.length>1)free.splice(i,1);}const h=pick();if(fin)s.lastKing=h;this.setType(h,type);
-    if(fin){h.hp=1;h.st='rise';h.t=0;h.dur=Math.random()<.25?.05:rnd(.08,.14);S.bell(1760,.06,.25);if(Math.random()<.25){const sp=toScreen(new V3(h.x,1.7,h.z),this.camera);Shell.pop(['Coucou !','Par ici !','Trop facile…'][(Math.random()*3)|0],sp[0],sp[1],'combo','#c88bff');}return;}
+    const pick=()=>free.splice((Math.random()*free.length)|0,1)[0],fin=s.time<=15&&!s.dead&&Shell.state==='play';if(fin){type='king';const i=free.indexOf(s.lastKing);if(i>=0&&free.length>1)free.splice(i,1);}const h=pick();if(fin)s.lastKing=h;this.setType(h,type);
+    if(fin){h.hp=1;h.st='rise';h.t=0;h.dur=Math.random()<.25?.05:rnd(.08,.14);if(h.dur>.06&&free.length&&Math.random()<.4){const f=pick();this.setType(f,'king');f.type='fake';f.hp=1;f.st='rise';f.t=0;f.dur=h.dur+rnd(-.02,.04);}S.bell(1760,.06,.25);if(Math.random()<.25){const sp=toScreen(new V3(h.x,1.7,h.z),this.camera);Shell.pop(['Coucou !','Par ici !','Trop facile…'][(Math.random()*3)|0],sp[0],sp[1],'combo','#c88bff');}return;}
     const base=Math.max(.52,.85-el*.0055);h.st='rise';h.t=0;h.dur=type==='diam'?.3:type==='gold'?.4:type==='king'?1.1:type==='helm'?base*1.2:base;
     // hérisson piégé à côté, au hasard (de plus en plus souvent)
     if(Math.random()<Math.min(.55,.3+el*.005)){const t=pick();this.setType(t,'hog');t.st='rise';t.t=0;t.dur=Math.max(h.dur,.6);}
@@ -3665,6 +3665,7 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
   down(x,y){const s=this.s;if(Shell.state!=='play'||s.dead)return;s.clicks++;const r=this.ray(x,y),h=r.h,at=h?new V3(h.x,0,h.z):r.gp;this.mal.t=0;this.mal.x=at.x;this.mal.z=at.z+.25;
     if(!h){s.combo=0;S.tone({wave:'triangle',f0:180,f1:120,dur:.08,gain:.06});for(let i=0;i<6;i++)this.smoke.emit(at.x,.1,at.z,rnd(-1,1),rnd(.3,1),rnd(-1,1),0x5a4a30,rnd(.08,.14),rnd(.3,.5),2);this.hud();return;}
     const sp=toScreen(new V3(h.x,h.y+1.3,h.z),this.camera);
+    if(h.type==='fake'){s.combo=0;s.fakes=(s.fakes||0)+1;s.score=Math.max(0,s.score+MO_T.fake.pts);Shell.setScore(s.score);h.st='taunt';h.t=0;Shell.pop('LOOSER !<small>c’était le faux roi · −50</small>',sp[0],sp[1],'big','#ff6a7a');[880,660,880,520,440].forEach((f,i)=>S.tone({wave:'square',f0:f,f1:f*.9,dur:.1,gain:.06,delay:i*.08}));this.hud();return;}
     if(h.type==='hog'){s.time=Math.max(0,s.time-3);s.combo=0;s.hogs++;s.score=Math.max(0,s.score+MO_T.hog.pts);Shell.setScore(s.score);h.st='hit';h.t=0;Shell.pop('Aïe, un hérisson !<small>−3 s</small>',sp[0],sp[1],'bad');S.tone({wave:'square',f0:400,f1:150,dur:.25,gain:.1});this.hud();return;}
     h.hp--;S.thud?S.thud():0;S.noise({type:'lowpass',f0:900,f1:200,dur:.12,gain:.18});
     if(h.hp>0){if(h.type==='king'){Shell.pop(`Encore ${h.hp} coup${h.hp>1?'s':''} !`,sp[0],sp[1],'crit','#c88bff');h.t=Math.min(h.t,h.dur*.4);S.tone({wave:'square',f0:900,f1:600,dur:.08,gain:.06});return;}Shell.pop('Clang !',sp[0],sp[1],'crit','#c8d0dc');h.mole.helm.visible=false;for(let i=0;i<14;i++)this.parts.emit(h.x,h.y+1,h.z,rnd(-2,2),rnd(1,3),rnd(-2,2),0xc8d0dc,rnd(.05,.1),rnd(.3,.5),5);S.tone({wave:'square',f0:1500,f1:900,dur:.08,gain:.06});return;}
@@ -3673,20 +3674,20 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
     else Shell.pop(`+${pts}${this.mult()>1?`<small>combo ×${String(this.mult()).replace('.',',')}</small>`:''}`,sp[0],sp[1],'crit','#f6ecd8');
     h.st='hit';h.t=0;h.mole.stars.visible=true;for(let i=0;i<16;i++)this.smoke.emit(h.x,.2,h.z,rnd(-1.5,1.5),rnd(.5,2),rnd(-1.5,1.5),0x6a5040,rnd(.1,.2),rnd(.4,.7),4);S.tone({wave:'triangle',f0:700+Math.min(15,s.combo)*40,f1:500,dur:.08,gain:.07});this.hud();},
   update(dt,st){const s=this.s,play=st==='play'&&!s.dead;s.t+=dt;this.ff.update(s.t);
-    if(play){const was=s.time;s.time-=dt;if(was>10&&s.time<=10){Shell.pop('10 dernières secondes !<small>seul le roi des taupes sort… et il est ultra-rapide</small>',W/2,H*.3,'big');S.win();}if(Math.floor(s.time*4)!==this.lt){this.lt=Math.floor(s.time*4);this.hud();}
-      if(!this.safeUp()){for(const h of this.holes)if(h.type==='hog'&&(h.st==='up'||h.st==='rise')){h.st='fall';h.t=0;}s.spawnT-=dt;if(s.spawnT<=0){this.spawn();s.spawnT=s.time<=10?(Math.random()<.3?rnd(.02,.1):rnd(.15,.7)):rnd(.15,.4);}}
+    if(play){const was=s.time;s.time-=dt;if(was>15&&s.time<=15){Shell.pop('15 dernières secondes !<small>le roi des taupes arrive… méfiez-vous de son sosie !</small>',W/2,H*.3,'big');S.win();}if(Math.floor(s.time*4)!==this.lt){this.lt=Math.floor(s.time*4);this.hud();}
+      if(!this.safeUp()){for(const h of this.holes)if(h.type==='hog'&&(h.st==='up'||h.st==='rise')){h.st='fall';h.t=0;}s.spawnT-=dt;if(s.spawnT<=0){this.spawn();s.spawnT=s.time<=15?(Math.random()<.3?rnd(.02,.1):rnd(.15,.7)):rnd(.15,.4);}}
       if(s.time<=0){s.dead=true;s.endT=0;Shell.pop('Temps écoulé !',W/2,H*.35,'big');for(const h of this.holes)if(h.st!=='down'){h.st='fall';h.t=0;}}}
     else if(st==='intro'){if(!this.safeUp()){s.spawnT-=dt;if(s.spawnT<=0){this.spawn();s.spawnT=rnd(.5,.9);}}}
     for(const h of this.holes){h.t+=dt;const m=h.mole;
-      if(h.st==='rise'){const ru=h.type==='king'?.035:.09;h.y=lerp(-1.2,0,Math.min(1,h.t/ru));if(h.t>=ru){h.st='up';h.t=0;}}
-      else if(h.st==='up'){h.y=Math.sin(h.t*8)*.03;if(h.t>=h.dur){h.st=h.type==='king'&&Math.random()<.45?'taunt':'fall';h.t=0;if(play&&h.type!=='hog'){s.missed++;if(s.combo>0)s.combo=Math.max(0,s.combo-2);}if(h.st==='taunt')this.taunt(h);}}
+      if(h.st==='rise'){const ru=h.type==='king'||h.type==='fake'?.035:.09;h.y=lerp(-1.2,0,Math.min(1,h.t/ru));if(h.t>=ru){h.st='up';h.t=0;}}
+      else if(h.st==='up'){h.y=Math.sin(h.t*8)*.03;if(h.t>=h.dur){h.st=h.type==='king'&&Math.random()<.45?'taunt':'fall';h.t=0;if(play&&h.type!=='hog'&&h.type!=='fake'){s.missed++;if(s.combo>0)s.combo=Math.max(0,s.combo-2);}if(h.st==='taunt')this.taunt(h);}}
       else if(h.st==='taunt'){h.y=.15+Math.abs(Math.sin(h.t*18))*.25;m.g.rotation.z=Math.sin(h.t*24)*.35;m.tongue.visible=true;if(h.t>=.32){h.st='fall';h.t=0;m.g.rotation.z=0;m.tongue.visible=false;}}
-      else if(h.st==='fall'){const fd=h.type==='king'?.04:.13;h.y=lerp(0,-1.2,Math.min(1,h.t/fd));if(h.t>=fd)h.st='down';}
+      else if(h.st==='fall'){const fd=h.type==='king'||h.type==='fake'?.04:.13;h.y=lerp(0,-1.2,Math.min(1,h.t/fd));if(h.t>=fd)h.st='down';}
       else if(h.st==='hit'){h.y=h.t<.12?-.25*h.t/.12:lerp(-.25,-1.2,Math.min(1,(h.t-.12)/.25));m.g.scale.set(1+.3*Math.max(0,1-h.t*6),1-.35*Math.max(0,1-h.t*6),1+.3*Math.max(0,1-h.t*6));m.stars.rotation.y+=dt*8;m.stars.children.forEach((c,i)=>{const a=i/4*6.28+s.t*6;c.position.set(Math.cos(a)*.4,0,Math.sin(a)*.4);});if(h.t>.4){h.st='down';m.g.scale.set(1,1,1);m.stars.visible=false;}}
       m.g.position.y=h.y;m.g.visible=h.st!=='down';m.g.rotation.y=Math.sin(s.t*2+h.x)*.25;m.eyes.forEach(e=>e.scale.y=(Math.sin(s.t*3+h.z*5)>.97?.01:.06));}
     // maillet
     const M=this.mal,ml=this.mallet;M.t+=dt;ml.visible=M.t<.35;if(ml.visible){ml.position.set(M.x+1.25,0,M.z);const k=M.t<.08?M.t/.08:1-Math.min(1,(M.t-.12)/.23);ml.rotation.set(0,0,lerp(.05,.9,k));}
-    if(s.dead){s.endT+=dt;if(s.endT>1.4&&!s.sent){s.sent=true;Shell.over(s.score,[['Taupes tapées',s.hits],['Précision',(s.clicks?Math.round(s.hits/s.clicks*100):0)+' %'],['Meilleur combo',s.best],['Taupes rares',s.golds],['Hérissons tapés',s.hogs]],'Fin de la chasse aux taupes');}}
+    if(s.dead){s.endT+=dt;if(s.endT>1.4&&!s.sent){s.sent=true;Shell.over(s.score,[['Taupes tapées',s.hits],['Précision',(s.clicks?Math.round(s.hits/s.clicks*100):0)+' %'],['Meilleur combo',s.best],['Taupes rares',s.golds],['Hérissons tapés',s.hogs],['Faux rois tapés',s.fakes||0]],'Fin de la chasse aux taupes');}}
     const c=this.camera;c.position.set(0,this.portrait?13:9.5,this.portrait?7.5:7.8);c.lookAt(0,0,this.portrait?-.2:-.6);
     this.parts.update(dt);this.smoke.update(dt);}
 };
