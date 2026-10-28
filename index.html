@@ -3649,7 +3649,7 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
   spawn(){const s=this.s,free=this.holes.filter(h=>h.st==='down');if(free.length<2)return;const el=60-s.time,q=Math.random();let type;
     if(el>8&&q<.03)type='diam';else if(q<.14)type='gold';else if(q<.38+Math.min(.12,el*.003))type='helm';else type='norm';
     const pick=()=>free.splice((Math.random()*free.length)|0,1)[0],fin=s.time<=10&&!s.dead&&Shell.state==='play';if(fin)type='king';const h=pick();this.setType(h,type);
-    if(fin){h.hp=1;h.st='rise';h.t=0;h.dur=.26;S.bell(1760,.06,.25);if(Math.random()<.25){const sp=toScreen(new V3(h.x,1.7,h.z),this.camera);Shell.pop(['Coucou !','Par ici !','Trop facile…'][(Math.random()*3)|0],sp[0],sp[1],'combo','#c88bff');}return;}
+    if(fin){h.hp=1;h.st='rise';h.t=0;h.dur=.17;S.bell(1760,.06,.25);if(Math.random()<.25){const sp=toScreen(new V3(h.x,1.7,h.z),this.camera);Shell.pop(['Coucou !','Par ici !','Trop facile…'][(Math.random()*3)|0],sp[0],sp[1],'combo','#c88bff');}return;}
     const base=Math.max(.52,.85-el*.0055);h.st='rise';h.t=0;h.dur=type==='diam'?.3:type==='gold'?.4:type==='king'?1.1:type==='helm'?base*1.2:base;
     // hérisson piégé à côté, au hasard (de plus en plus souvent)
     if(Math.random()<Math.min(.55,.3+el*.005)){const t=pick();this.setType(t,'hog');t.st='rise';t.t=0;t.dur=Math.max(h.dur,.6);}
@@ -3678,7 +3678,7 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'pointer',bloom:.5,b
       if(s.time<=0){s.dead=true;s.endT=0;Shell.pop('Temps écoulé !',W/2,H*.35,'big');for(const h of this.holes)if(h.st!=='down'){h.st='fall';h.t=0;}}}
     else if(st==='intro'){if(!this.safeUp()){s.spawnT-=dt;if(s.spawnT<=0){this.spawn();s.spawnT=rnd(.5,.9);}}}
     for(const h of this.holes){h.t+=dt;const m=h.mole;
-      if(h.st==='rise'){h.y=lerp(-1.2,0,Math.min(1,h.t/.09));if(h.t>=.09){h.st='up';h.t=0;}}
+      if(h.st==='rise'){const ru=h.type==='king'?.06:.09;h.y=lerp(-1.2,0,Math.min(1,h.t/ru));if(h.t>=ru){h.st='up';h.t=0;}}
       else if(h.st==='up'){h.y=Math.sin(h.t*8)*.03;if(h.t>=h.dur){h.st=h.type==='king'?'taunt':'fall';h.t=0;if(play&&h.type!=='hog'){s.missed++;if(s.combo>0)s.combo=Math.max(0,s.combo-2);}if(h.st==='taunt')this.taunt(h);}}
       else if(h.st==='taunt'){h.y=.15+Math.abs(Math.sin(h.t*18))*.25;m.g.rotation.z=Math.sin(h.t*24)*.35;m.tongue.visible=true;if(h.t>=.55){h.st='fall';h.t=0;m.g.rotation.z=0;m.tongue.visible=false;}}
       else if(h.st==='fall'){h.y=lerp(0,-1.2,Math.min(1,h.t/.13));if(h.t>=.13)h.st='down';}
