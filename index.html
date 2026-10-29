@@ -37,7 +37,7 @@ button:focus-visible{outline:2px solid var(--lantern);outline-offset:3px}
 #goldglow{box-shadow:inset 0 0 110px rgba(255,193,77,.5)}
 #fire{background:linear-gradient(0deg,rgba(255,90,20,.42),transparent 24%),linear-gradient(90deg,rgba(255,110,30,.3),transparent 14%,transparent 86%,rgba(255,110,30,.3));animation:flicker .18s steps(2) infinite}
 @keyframes flicker{50%{filter:brightness(1.25)}}
-#flash{position:fixed;inset:0;z-index:40;background:#fff;opacity:0;pointer-events:none}
+#flash{position:fixed;inset:0;z-index:40;background:#ffeccc;opacity:0;pointer-events:none}
 #pops{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden}
 .pop{position:absolute;transform:translate(-50%,-50%);font-family:var(--f-display);white-space:nowrap;text-align:center;
   animation:pop 1.15s cubic-bezier(.2,.8,.2,1) forwards;text-shadow:0 3px 0 rgba(0,0,0,.4),0 0 20px rgba(0,0,0,.45)}
@@ -565,7 +565,7 @@ textarea:focus{border-color:var(--lantern);box-shadow:0 0 0 3px rgba(255,193,77,
   <canvas id="hubbg"></canvas>
   <section class="overlay hubwrap">
     <div class="menu-inner hub2">
-      <div class="topbar"><div class="tb-left"><span class="seeds" title="Pépins"><svg viewBox="0 0 14 19"><path d="M7 0C3 5 0 9 0 12.5A7 6.5 0 0 0 14 12.5C14 9 11 5 7 0Z" fill="#2a1a12" stroke="#f6ecd8" stroke-width="1"/><ellipse cx="5" cy="11" rx="1.4" ry="2.6" fill="#8a6a50"/></svg><span id="hubSeeds">0</span></span><button class="pchip" id="hubProfile" aria-label="Profil multijoueur"><i></i><span id="hubPName">Joueur</span></button></div><div class="tb-right"><button class="iconbtn" id="hubSound" aria-label="Couper le son"><svg viewBox="0 0 24 24" id="hubSoundIco"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="2" fill="none"/></svg></button></div></div>
+      <div class="topbar"><div class="tb-left"><span class="seeds" title="Pépins"><svg viewBox="0 0 14 19"><path d="M7 0C3 5 0 9 0 12.5A7 6.5 0 0 0 14 12.5C14 9 11 5 7 0Z" fill="#2a1a12" stroke="#f6ecd8" stroke-width="1"/><ellipse cx="5" cy="11" rx="1.4" ry="2.6" fill="#8a6a50"/></svg><span id="hubSeeds">0</span></span><button class="pchip" id="hubProfile" aria-label="Profil multijoueur"><i></i><span id="hubPName">Joueur</span></button></div><div class="tb-right"><button class="iconbtn" id="hubLum" aria-label="Luminosité des jeux" title="Luminosité des jeux" style="width:auto;padding:0 13px;gap:6px;display:inline-flex;align-items:center;font:700 13px var(--f-ui,system-ui);color:inherit"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg><span id="hubLumV">100 %</span></button><button class="iconbtn" id="hubSound" aria-label="Couper le son"><svg viewBox="0 0 24 24" id="hubSoundIco"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="2" fill="none"/></svg></button></div></div>
       <div class="hero">
         <div class="hero-l">
           <p class="eyebrow">Salle de jeux de la forêt · 30 jeux en 3D</p>
@@ -2865,7 +2865,7 @@ function update(rdt){
   const lt=(ptr.has&&performance.now()-(ptr.lastMove||0)<120)?clamp(state.bspeed/1.5,0,1)*3.2:0;
   bladeLight.intensity+=(lt-bladeLight.intensity)*Math.min(1,rdt*14);if(ptr.has)screenToWorld(ptr.x,ptr.y,2.2,bladeLight.position);
   state.bspeed*=Math.pow(.05,rdt);
-  if(state.flash>0){flashEl.style.opacity=reduceMotion?state.flash*.4:state.flash;state.flash=Math.max(0,state.flash-rdt*1.4);}else flashEl.style.opacity=0;
+  if(state.flash>0){flashEl.style.opacity=state.flash*(reduceMotion?.2:.4);state.flash=Math.max(0,state.flash-rdt*1.4);}else flashEl.style.opacity=0;
 }
 function frame(now){
   if(window.FG.active!=='fruits'){last=now;requestAnimationFrame(frame);return;}
@@ -3002,7 +3002,7 @@ function ensureRenderer(){if(renderer)return;renderer=new THREE.WebGLRenderer({c
   renderer.outputEncoding=THREE.LinearEncoding;renderer.toneMapping=THREE.NoToneMapping;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   try{if(THREE.EffectComposer&&THREE.RenderPass&&THREE.UnrealBloomPass){const msRT=r=>{if(matchMedia('(pointer:coarse)').matches)return undefined;try{if(r.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget){const t=new THREE.WebGLMultisampleRenderTarget(innerWidth*r.getPixelRatio(),innerHeight*r.getPixelRatio(),{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});t.samples=4;return t;}}catch(e){}return undefined;};composer=new THREE.EffectComposer(renderer,msRT(renderer));renderPass=new THREE.RenderPass(new THREE.Scene(),new THREE.PerspectiveCamera());composer.addPass(renderPass);bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),.6,.5,.8);composer.addPass(bloomPass);
     if(THREE.ShaderPass){gradePass=new THREE.ShaderPass({uniforms:{tDiffuse:{value:null},vig:{value:.3},sat:{value:1.08},con:{value:1.05},warm:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-      fragmentShader:'uniform sampler2D tDiffuse;uniform float vig,sat,con,warm;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);vec3 col=c.rgb;float l=dot(col,vec3(.2126,.7152,.0722));col=mix(vec3(l),col,sat);col=(col-.5)*con+.5;col+=vec3(.02,.005,-.02)*warm;vec2 d=vUv-.5;col*=1.-vig*dot(d,d)*2.4;float n=fract(sin(dot(vUv*1000.,vec2(12.9898,78.233)))*43758.5453);col+=(n-.5)/255.;gl_FragColor=vec4(max(col,0.),c.a);}'});composer.addPass(gradePass);}}}catch(e){composer=null;}
+      fragmentShader:'uniform sampler2D tDiffuse;uniform float vig,sat,con,warm;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);vec3 col=c.rgb;float l=dot(col,vec3(.2126,.7152,.0722));col=mix(vec3(l),col,sat);col=(col-.5)*con+.5;float hl=dot(col,vec3(.2126,.7152,.0722));if(hl>.72)col*=(.72+(hl-.72)*.4)/hl;col+=vec3(.02,.005,-.02)*warm;vec2 d=vUv-.5;col*=1.-vig*dot(d,d)*2.4;float n=fract(sin(dot(vUv*1000.,vec2(12.9898,78.233)))*43758.5453);col+=(n-.5)/255.;gl_FragColor=vec4(max(col,0.),c.a);}'});composer.addPass(gradePass);}}}catch(e){composer=null;}
   resize();}
 let composer=null,renderPass=null,bloomPass=null,gradePass=null;const Q={bloom:true,ft:[],low:false};
 function resize(){W=innerWidth;H=innerHeight;if(renderer)renderer.setSize(W,H,false);fx2.width=Math.round(W*DPR);fx2.height=Math.round(H*DPR);g2.setTransform(DPR,0,0,DPR,0,0);if(composer){composer.setPixelRatio(Q.low?1:Math.min(DPR,1.5));composer.setSize(W,H);}if(Shell.game&&Shell.game.built)Shell.game.resize(W,H);}
@@ -3048,7 +3048,7 @@ window.addEventListener('keyup',e=>{const g=Shell.game;if(!g||FG.active!==g.id||
 document.addEventListener('visibilitychange',()=>{if(document.hidden)Shell.pause();});
 let last=performance.now();
 function loop(now){requestAnimationFrame(loop);const rdt=Math.min(.05,(now-last)/1000);last=now;const gm=Shell.game;if(!gm||FG.active!==gm.id||!renderer)return;
-  if(Shell.state!=='paused')gm.update(rdt,Shell.state);
+  {const lv=+((gm.dim||1)*(FG.lum||1)).toFixed(3);if(lv!==FG._lv){FG._lv=lv;gl2.style.filter=lv<.999?'brightness('+lv+')':'';}}if(Shell.state!=='paused')gm.update(rdt,Shell.state);
   if(composer&&Q.bloom&&gm.bloom!==0){renderPass.scene=gm.scene;renderPass.camera=gm.camera;bloomPass.strength=gm.bloom||.5;bloomPass.threshold=gm.bloomTh||.82;if(gradePass){const gr=gm.grade||{};gradePass.uniforms.sat.value=gr.sat||1.08;gradePass.uniforms.con.value=gr.con||1.05;gradePass.uniforms.vig.value=gr.vig!==undefined?gr.vig:.3;gradePass.uniforms.warm.value=gr.warm||0;}composer.render(rdt);}else renderer.render(gm.scene,gm.camera);
   Q.ft.push(rdt);if(Q.ft.length>120){const avg=Q.ft.reduce((a,b)=>a+b,0)/Q.ft.length;Q.ft.length=0;if(avg>1/33){if(Q.bloom)Q.bloom=false;else if(!Q.low){Q.low=true;renderer.setPixelRatio(1);resize();}}}g2.clearRect(0,0,W,H);if(gm.draw2d&&Shell.state!=='paused')gm.draw2d(g2,rdt,now);}
 requestAnimationFrame(loop);
@@ -3322,7 +3322,7 @@ const BIRDS={
   chouette:{name:'Chouette blanche',pts:-50,body:0xf2f0ea,belly:0xffffff,wing:0xd8d4ca,head:0xf6f4ee,beak:0x8a7a5a,size:1.15,sp:5.5,w:6,flap:7,owl:1}
 };
 const BIRDKEYS=Object.keys(BIRDS);
-const Archery={id:'archery',name:'Arc de Lune',cursor:'none',bloom:.6,bloomTh:.8,grade:{warm:1,sat:1.12,con:1.02,vig:.22},
+const Archery={id:'archery',dim:.9,name:'Arc de Lune',cursor:'none',bloom:.45,bloomTh:.85,grade:{warm:1,sat:1.12,con:1.02,vig:.22},
   tagline:'Au crépuscule, les oiseaux traversent la clairière de plus en plus vite. Anticipez leur vol : les plus rares rapportent gros, mais épargnez la chouette blanche.',
   howto:[['Souris ou doigt','Placer le viseur'],['Maintenir puis relâcher','Bander l’arc et tirer'],['Anticiper','Visez devant l’oiseau : la flèche met du temps à arriver'],['Rares','Geai 25 · Cardinal 40 · Faisan doré 80 · Phénix 200 (+5 s)'],['Chouette blanche','−50 points : ne la touchez pas']],
   seeds(score){return Math.max(0,score)/14+this.s.rares*3;},
@@ -3726,7 +3726,7 @@ const Mole={id:'mole',name:'Taupes de la Clairière',cursor:'crosshair',bloom:.5
 /* =====================================================================
    SERPENT DES SOUS-BOIS — snake sur la mousse
    ===================================================================== */
-const Snake={id:'snake',name:'Serpent des Sous-bois',cursor:'default',bloom:.55,bloomTh:.84,grade:{sat:1.12,con:1.06,vig:.4},
+const Snake={id:'snake',dim:.88,name:'Serpent des Sous-bois',cursor:'default',bloom:.55,bloomTh:.84,grade:{sat:1.12,con:1.06,vig:.4},
   tagline:'Guidez le serpent sur la mousse, mangez les champignons lumineux et grandissez… sans vous mordre la queue ni heurter les pierres.',
   howto:[['Flèches, ZQSD ou glisser le doigt','Changer de direction'],['Champignon','+1 et le serpent grandit'],['Gland doré','+5 · disparaît vite · des pierres apparaissent peu à peu']],
   seeds(score){return score*1.2;},
@@ -3890,7 +3890,7 @@ const Hockey={id:'hockey',name:'Palet de la Clairière',cursor:'none',bloom:.6,b
 /* =====================================================================
    SAUT DE LA GRENOUILLE — traverser chemins et rivières sans fin
    ===================================================================== */
-const Frog={id:'frog',name:'Saut de la Grenouille',cursor:'pointer',bloom:.5,bloomTh:.86,grade:{sat:1.12,con:1.05,vig:.4},
+const Frog={id:'frog',dim:.78,name:'Saut de la Grenouille',cursor:'pointer',bloom:.5,bloomTh:.86,grade:{sat:1.12,con:1.05,vig:.4},
   tagline:'Aidez la grenouille à remonter la forêt : évitez les sangliers sur les chemins, sautez de rondin en rondin sur les rivières… et ne traînez pas, la brume avance.',
   howto:[['Toucher, clic ou ↑','Sauter en avant · glisser ou ← → ↓ pour les côtés'],['Rivière','Uniquement sur les rondins et les nénuphars'],['Brume','Elle avance derrière vous : ne restez pas sur place']],
   seeds(score){return score*.8;},
@@ -4083,7 +4083,7 @@ const Axe={id:'axe',name:'Lancer de Haches',cursor:'pointer',bloom:.3,bloomTh:.9
    BAIES DE LA FORÊT — échanger, aligner, créer des baies spéciales
    ===================================================================== */
 const MT_COL=[0xff3a4a,0x4a7aff,0xffc83a,0x8a4aff,0x4ad86a,0xff8a3a];
-const Berry={id:'berry',name:'Baies de la Forêt',cursor:'pointer',bloom:.4,bloomTh:.9,grade:{sat:1.12,con:1.05,vig:.35},
+const Berry={id:'berry',dim:.88,name:'Baies de la Forêt',cursor:'pointer',bloom:.4,bloomTh:.9,grade:{sat:1.12,con:1.05,vig:.35},
   tagline:'Échangez deux baies voisines pour en aligner trois ou plus. Créez des baies spéciales, remplissez les paniers pour gagner du temps.',
   howto:[['Glisser une baie (ou deux clics)','Échanger avec sa voisine'],['Aligner 4 · en L ou en T','Baie rayée (vide une ligne) · baie bombe (3×3)'],['Aligner 5','Gland doré : échangez-le pour cueillir toute une couleur']],
   seeds(score){return score/600;},
@@ -4202,7 +4202,7 @@ const Berry={id:'berry',name:'Baies de la Forêt',cursor:'pointer',bloom:.4,bloo
 /* =====================================================================
    BATAILLE DE BOULES DE NEIGE — viser, lancer, se cacher
    ===================================================================== */
-const Snow={id:'snow',name:'Bataille de Boules de Neige',cursor:'crosshair',bloom:.15,bloomTh:.97,grade:{sat:1.05,con:1.04,vig:.4},
+const Snow={id:'snow',dim:.74,name:'Bataille de Boules de Neige',cursor:'crosshair',bloom:.15,bloomTh:.97,grade:{sat:1.05,con:1.04,vig:.4},
   tagline:'Les lutins surgissent de leurs forts. Visez-les avant qu’ils ne vous visent… et cachez-vous derrière le mur pour refaire vos boules.',
   howto:[['Clic ou toucher','Lancer une boule là où vous visez · la tête vaut plus'],['Espace, S ou bouton « Cachette »','Se cacher (et refaire des boules)'],['Lutin casqué, bombardier, lutin doré','3 vagues · 90 secondes · 5 cœurs']],
   seeds(score){return score/35;},
@@ -4398,7 +4398,7 @@ const BK={
     b.hidden=Math.max(0,b.hidden-dt);b.g.visible=b.hidden<=0;const pulse=1+Math.sin(t*(danger?22:9))*(danger?.07:.03);b.g.position.copy(b.pos);b.g.scale.setScalar(pulse);b.g.rotation.y=Math.sin(t*1.3)*.4;
     b.spark.scale.setScalar(.55+Math.random()*.35);b.spark.material.color.setHex(danger?0xff4a20:0xffb040);b.light.intensity=1+Math.random()*.6+(danger?1:0);b.mat.emissive.setHex(danger&&Math.sin(t*22)>0?0x400000:0);
     if(Math.random()<dt*25){const sp=b.g.localToWorld(new THREE.Vector3(.27,1.1,0));G.parts.emit(sp.x,sp.y,sp.z,rnd(-.6,.6),rnd(.5,1.5),rnd(-.6,.6),0xffc060,rnd(.04,.08),rnd(.2,.4),3);}
-    G.fire.intensity=1.5+Math.sin(t*9)*.12+Math.sin(t*23)*.07+(G.flash||0)*6;G.flash=Math.max(0,(G.flash||0)-dt*3);
+    G.fire.intensity=1.5+Math.sin(t*9)*.12+Math.sin(t*23)*.07+(G.flash||0)*2.2;G.flash=Math.max(0,(G.flash||0)-dt*3);
     for(const p of G.players||[]){if(!p.c)continue;p.jump=Math.max(0,p.jump-dt*1.6);const j=p.jump;p.c.position.y=.02+Math.sin(j*Math.PI)*.9;p.c.rotation.y=j>0?(1-j)*6.283:0;
       if(!p.alive){p.fall=Math.min(1,p.fall+dt*2);p.c.rotation.z=p.fall*1.35;p.c.position.y=Math.max(p.c.position.y,.02);if(p.grey<1){p.grey=Math.min(1,p.grey+dt*2);for(const[m,c0]of p.c.userData.mats)m.color.setHex(c0).lerp(new THREE.Color(0x3a3a40),p.grey*.75);}}
       else if(p===G.holder&&!j){p.c.position.y=.02+Math.abs(Math.sin(t*(danger?14:6)))*.05;}}
@@ -4705,7 +4705,7 @@ const Connect={id:'connect',name:'Quatre Baies',cursor:'pointer',bloom:.4,bloomT
    PAIRES DE LA FORÊT — memory en 90 secondes, avec la carte Zobi
    ===================================================================== */
 const PR_ICONS=[['🦊','#e8792e','Renard'],['🦉','#9a7a5a','Hibou'],['🐻','#6a4630','Ours'],['🐰','#d8d0c8','Lapin'],['🐿️','#c8582a','Écureuil'],['🦔','#8a6a4a','Hérisson'],['🍄','#e83a3a','Champignon'],['🌰','#a0703a','Gland'],['🍁','#ff7a2a','Érable'],['🐸','#4ad86a','Grenouille'],['🦋','#4a9aff','Papillon'],['🐞','#ff3a3a','Coccinelle'],['🌲','#2e7a4a','Sapin'],['🌙','#ffe08a','Lune'],['⭐','#ffc83a','Étoile'],['🐌','#c8a070','Escargot'],['🦌','#a0703a','Cerf'],['🐝','#ffd23a','Abeille']];
-const Pairs={id:'pairs',name:'Paires de la Forêt',cursor:'pointer',bloom:.35,bloomTh:.9,grade:{sat:1.1,con:1.05,vig:.4},
+const Pairs={id:'pairs',dim:.9,name:'Paires de la Forêt',cursor:'pointer',bloom:.2,bloomTh:.93,grade:{sat:1.1,con:1.05,vig:.4},
   tagline:'Retournez les cartes deux par deux et retrouvez les paires. Plateaux de plus en plus grands, 90 secondes au total.',
   howto:[['Toucher une carte','La retourner · deux cartes identiques restent ouvertes'],['Paires à la suite','Bonus de série · plateau fini = +6 s'],['Carte Zobi','La paire de Zobi révèle toutes les cartes un instant']],
   seeds(score){return score/40;},
@@ -5641,7 +5641,7 @@ function makeKart(col,num){
     const t=new THREE.Mesh(new THREE.CylinderGeometry(r,r,w,20),[tire,rimM,rimM]);t.rotation.z=Math.PI/2;wg.add(t);wheels.push({piv,wg,r,front:i<2});});
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});return{g,body,wheels};
 }
-const Kart={id:'kart',name:'Kart des Pins',cursor:'default',bloom:.65,bloomTh:.75,
+const Kart={id:'kart',dim:.92,name:'Kart des Pins',cursor:'default',bloom:.5,bloomTh:.8,
   tagline:'Trois tours de circuit en forêt contre la Loutre, le Blaireau et le Hibou. Dérapez dans les virages pour charger un turbo.',
   howto:[['↑ ou Z / W','Accélérer'],['← → ou Q D','Tourner'],['↓ ou S','Freiner'],['Espace en tournant','Déraper puis relâcher : turbo'],['Mobile','Boutons à l’écran, accélération automatique']],
   seeds(score){return score/80;},
@@ -6768,7 +6768,7 @@ const Defense={id:'defense',name:'Gardiens de la Cabane',cursor:'crosshair',bloo
    ===================================================================== */
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const LW=4.3,LCH=50;
-const Luge={id:'luge',name:'Descente des Cimes',cursor:'default',bloom:.28,bloomTh:.97,grade:{sat:1.08,con:1.08,vig:.32},
+const Luge={id:'luge',dim:.76,name:'Descente des Cimes',cursor:'default',bloom:.28,bloomTh:.97,grade:{sat:1.08,con:1.08,vig:.32},
   tagline:'Une luge, Zobi et une piste glacée qui serpente dans la montagne. Penchez-vous dans les virages, passez entre les portes pour gagner du temps et décollez sur les tremplins.',
   howto:[['← →  ou  Q D','Se pencher pour tourner'],['Tactile','Maintenez le côté gauche ou droit de l’écran'],['↓  ou  S','Freiner'],['Portes dorées','+3 secondes'],['Arbres, rochers, bonhommes','−3 secondes et ralentissement']],
   seeds(score){return score/150+this.s.gates*.5;},
@@ -6999,7 +6999,7 @@ function makeCanoe(col,fox){const g=new THREE.Group(),b=new THREE.Group();b.posi
   else{const m=new THREE.MeshStandardMaterial({color:col,roughness:.6});const t=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,.5,10),m);t.position.set(0,.3,.2);b.add(t);const h=new THREE.Mesh(new THREE.SphereGeometry(.16,12,10),new THREE.MeshStandardMaterial({color:0xf0d8b0}));h.position.set(0,.68,.2);b.add(h);const hm=new THREE.Mesh(new THREE.SphereGeometry(.17,12,8,0,6.28,0,1.6),new THREE.MeshPhysicalMaterial({color:0xf6ecd8,clearcoat:1,roughness:.3}));hm.position.set(0,.7,.2);b.add(hm);}
   const paddle=new THREE.Group();paddle.position.set(0,.5,.05);const sh=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,1.7,6),inM);sh.rotation.z=Math.PI/2;paddle.add(sh);[-1,1].forEach(s=>{const bl=new THREE.Mesh(new THREE.BoxGeometry(.3,.02,.16),new THREE.MeshStandardMaterial({color:0xffc14d,roughness:.5}));bl.position.x=s*.85;paddle.add(bl);});b.add(paddle);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});return{g,b,paddle,fox:P};}
-const Boat={id:'boat',name:'Rapides de la Rivière',cursor:'default',bloom:.45,bloomTh:.88,grade:{sat:1.1,con:1.05,vig:.3},
+const Boat={id:'boat',dim:.82,name:'Rapides de la Rivière',cursor:'default',bloom:.45,bloomTh:.88,grade:{sat:1.1,con:1.05,vig:.3},
   tagline:'Une course de canoës de 1 500 m sur une rivière de montagne : rapides écumants, chutes d’eau, rochers et flèches d’accélération. Battez la loutre, le castor et le héron.',
   howto:[['← →  ou  Q D','Diriger le canoë'],['Tactile','Maintenez le côté gauche ou droit de l’écran'],['Flèches vertes','Coup d’accélération'],['Rochers','Gros ralentissement'],['Chutes d’eau','Petit vol et élan au bas de la chute']],
   seeds(score){return score/90;},
@@ -7222,6 +7222,7 @@ $('#hubFeat').addEventListener('click',()=>{S.init();S.click();FG.go($('#hubFeat
 $('#hubMulti').addEventListener('click',()=>{S.init();S.click();FG.openMatch();});
 $('#hubProfile').addEventListener('click',()=>{S.init();S.click();FG.openMatch();});
 $('#hubQuick').addEventListener('click',()=>{S.init();S.click();FG.go(LIST[(Math.random()*LIST.length)|0].id);});
+FG.lum=1;try{const v=parseFloat(localStorage.getItem('fg_lum'));if(v>=.5&&v<=1)FG.lum=v;}catch(e){}const lumUI=()=>{$('#hubLumV').textContent=Math.round(FG.lum*100)+' %';const g1=$('#gl');if(g1)g1.style.filter=FG.lum<.999?'brightness('+FG.lum+')':'';};lumUI();$('#hubLum').addEventListener('click',()=>{S.init();const L=[1,.85,.7];FG.lum=L[(L.indexOf(FG.lum)+1)%L.length]||1;try{localStorage.setItem('fg_lum',String(FG.lum));}catch(e){}lumUI();S.click();});
 $('#hubSound').addEventListener('click',()=>{S.init();if(FG.wallet)FG.wallet.setMuted(!FG.wallet.muted());renderHub();S.click();});
 /* ---------- Multijoueur : local (chacun son tour) et en ligne (salons) ---------- */
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
