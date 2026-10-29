@@ -3078,6 +3078,28 @@ function makeFox(tint){
   if(!tint)root.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return{root,body,head,tail,legs};
 }
+function makeZobi(tint){
+  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
+  const Mt=c=>new THREE.MeshStandardMaterial({color:c,roughness:.65}),suit=Mt(tint||0x1c1c26),skin=Mt(0x8a5a3a),hair=Mt(0x1a120c),shirt=Mt(0xf6f6f2),red=Mt(0xd42a2a),dark=Mt(0x0a0a0e),gold=new THREE.MeshStandardMaterial({color:0xffc14d,roughness:.3,metalness:.6,emissive:0x5a3a00});
+  const all=[suit,skin,hair,shirt,red,dark,gold];if(tint)all.forEach(m=>{m.transparent=true;m.opacity=.5;m.depthWrite=false;});
+  const SG=new THREE.SphereGeometry(1,20,14),add=(m,sx,sy,sz,x,y,z,par)=>{const o=new THREE.Mesh(SG,m);o.scale.set(sx,sy,sz);o.position.set(x,y,z);(par||body).add(o);return o;};
+  add(suit,.3,.36,.23,0,.9,0);const jk=new THREE.Mesh(new THREE.CylinderGeometry(.29,.27,.2,16),suit);jk.position.y=.66;body.add(jk);
+  add(shirt,.12,.2,.07,0,.99,-.18);const knot=add(red,.04,.04,.04,0,1.13,-.24);
+  const tie=new THREE.Mesh(new THREE.ConeGeometry(.055,.32,4),red);tie.rotation.set(Math.PI,Math.PI/4,0);tie.scale.z=.45;tie.position.set(0,.96,-.24);body.add(tie);
+  [-1,1].forEach(s=>{const lp=new THREE.Mesh(new THREE.BoxGeometry(.06,.3,.03),suit);lp.position.set(s*.09,1.0,-.205);lp.rotation.z=-s*.35;body.add(lp);});
+  add(gold,.03,.03,.03,.17,.98,-.2);
+  const head=new THREE.Group();head.position.set(0,1.42,-.02);body.add(head);add(skin,.27,.28,.26,0,0,0,head);
+  [-1,1].forEach(s=>{add(skin,.04,.07,.06,s*.27,0,0,head);add(shirt,.055,.06,.03,s*.1,.04,-.235,head);add(dark,.03,.035,.02,s*.1,.035,-.26,head);
+    const br=new THREE.Mesh(new THREE.BoxGeometry(.1,.022,.03),hair);br.position.set(s*.1,.14,-.25);br.rotation.z=s*.18;head.add(br);});
+  add(Mt(0x6a4028),.035,.03,.03,0,-.03,-.27,head);const sm=new THREE.Mesh(new THREE.TorusGeometry(.075,.016,6,14,Math.PI*.8),dark);sm.rotation.z=Math.PI*1.1;sm.position.set(0,-.1,-.24);head.add(sm);
+  for(let i=0;i<40;i++){const y=1-(i/39)*1.15,r=Math.sqrt(Math.max(0,1-y*y)),a=i*2.4,x=Math.cos(a)*r,z=Math.sin(a)*r;if(z<-.3&&y<.6)continue;add(hair,.09,.09,.09,x*.26,.06+y*.24,z*.25,head);}
+  const legs=[];
+  [-1,1].forEach(s=>{const p=new THREE.Group();p.position.set(s*.34,1.1,0);const a=new THREE.Mesh(new THREE.CylinderGeometry(.065,.06,.42,8),suit);a.position.y=-.21;p.add(a);add(skin,.065,.065,.065,0,-.45,0,p);body.add(p);legs.push(p);});
+  [-1,1].forEach(s=>{const p=new THREE.Group();p.position.set(s*.12,.6,0);const l=new THREE.Mesh(new THREE.CylinderGeometry(.08,.07,.5,8),dark);l.position.y=-.25;p.add(l);const sh=new THREE.Mesh(new THREE.BoxGeometry(.13,.08,.24),dark);sh.position.set(0,-.54,-.05);p.add(sh);body.add(p);legs.push(p);});
+  const tail=new THREE.Group();body.add(tail);
+  if(!tint)root.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return{root,body,head,tail,legs,human:true};
+}
 const WORLDS=[
   {id:'foret',name:'Forêt de nuit',diff:1,v:[14,32],sky:['#07101b','#13293a','#1a3644'],stars:230,fog:0x163040,fogR:[16,82],hemi:[0xb0d8ff,0x2a2030,.95],key:0xd0e0ff,keyI:1.3,bloom:.5,bth:.86,warm:0xffa860,
     path:['#56452f','#76603f','#36291b'],grass:['#1d4126','rgba(84,138,74,.5)','rgba(12,34,18,.58)'],deco:'pine',lamp:0xffb04a,amb:'fly',ambC:0xffd27a,bark:0xffffff,rock:0x6a7078,leaf:0x2f6a36,chaser:'ours',cname:'L’ours'},
@@ -3139,7 +3161,7 @@ function makeDeco(kind,s){const g=new THREE.Group();
   for(let i=0;i<4;i++){const b=new THREE.Mesh(new THREE.CylinderGeometry(.04*s,.1*s,2*s,5),m);b.position.set(0,rnd(2.5,4.5)*s,0);b.rotation.set(rnd(-.4,.4),rnd(0,6),rnd(.6,1.2)*(Math.random()<.5?1:-1));g.add(b);}
   if(Math.random()<.4){const w=glowSprite(Math.random()<.5?0x8aff9a:0xb08aff,.7);w.scale.setScalar(1.2);w.position.set(rnd(-1.5,1.5),rnd(1,3),rnd(-1,1));g.add(w);}return g;}
 const Runner={id:'runner',name:'Sprint des Bois',cursor:'default',bloom:.55,
-  tagline:'Le renard file sans fin à travers cinq mondes de plus en plus rapides, poursuivi par une créature. Un écart raté et elle se rapproche ; deux, et elle vous attrape.',
+  tagline:'Zobi file sans fin à travers cinq mondes de plus en plus rapides, poursuivi par une créature. Un écart raté et elle se rapproche ; deux, et elle vous attrape.',
   howto:[['← →  ou  Q D','Changer de couloir'],['↑  ou  Espace','Sauter'],['↓  ou  S','Glisser sous une branche'],['Tactile','Balayez dans la direction voulue'],['Attention','Heurter un obstacle en changeant de couloir fait trébucher']],
   world:'foret',
   seeds(score){return this.s.seeds+score/120;},
@@ -3157,7 +3179,7 @@ const Runner={id:'runner',name:'Sprint des Bois',cursor:'default',bloom:.55,
     const an=this.ambN=160,ap=this.ambP=new Float32Array(an*3);this.ambB=[];for(let i=0;i<an;i++)this.ambB.push([rnd(-14,14),rnd(.3,6),rnd(-80,8),rnd(0,6.28),rnd(.3,1)]);
     const ag=new THREE.BufferGeometry();ag.setAttribute('position',new THREE.BufferAttribute(ap,3));this.ambM=new THREE.PointsMaterial({map:glowTex,color:0xffd27a,size:.35,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
     this.amb=new THREE.Points(ag,this.ambM);this.amb.frustumCulled=false;sc.add(this.amb);
-    this.fox=makeFox();sc.add(this.fox.root);
+    this.fox=makeZobi();sc.add(this.fox.root);
     this.parts=new P3(sc,500,true);this.dust=new P3(sc,300,false);
     const bark=canvasTex(256,128,(g,w,h)=>{g.fillStyle='#5a3a22';g.fillRect(0,0,w,h);for(let i=0;i<120;i++){g.strokeStyle=Math.random()<.5?'rgba(30,18,10,.6)':'rgba(120,85,55,.4)';g.lineWidth=rnd(1,3);const y=Math.random()*h;g.beginPath();g.moveTo(0,y);for(let x=0;x<=w;x+=16)g.lineTo(x,y+rnd(-3,3));g.stroke();}});
     const ring=canvasTex(128,128,(g)=>{g.fillStyle='#c8a070';g.fillRect(0,0,128,128);for(let r=8;r<64;r+=6){g.strokeStyle='rgba(110,70,35,.5)';g.lineWidth=1.5;g.beginPath();g.arc(64,64,r,0,6.28);g.stroke();}});
@@ -3218,7 +3240,7 @@ const Runner={id:'runner',name:'Sprint des Bois',cursor:'default',bloom:.55,
   move(x,y){const w=this.sw;if(!w||w.done)return;const dx=x-w.x,dy=y-w.y;if(Math.hypot(dx,dy)>26){w.done=true;this.act(Math.abs(dx)>Math.abs(dy)?(dx<0?'L':'R'):(dy<0?'U':'D'));}},
   up(){if(this.sw&&!this.sw.done)this.act('U');this.sw=null;},
   key(k,dn){if(!dn)return;const m={ArrowLeft:'L',a:'L',q:'L',A:'L',Q:'L',ArrowRight:'R',d:'R',D:'R',ArrowUp:'U',w:'U',z:'U',W:'U',Z:'U',' ':'U',ArrowDown:'D',s:'D',S:'D'}[k];if(m)this.act(m);},
-  animFox(dt,sp){const f=this.fox,s=this.s;s.ph+=dt*sp*.55;const air=s.y>.05,sl=s.slide>0;
+  animFox(dt,sp){const f=this.fox,s=this.s;s.ph+=dt*sp*.55;const air=s.y>.05,sl=s.slide>0;if(f.human){const k=Math.min(1,dt*18),sw=Math.sin(s.ph)*.95,T=air?[2.5,2.3,1.1,-.5]:sl?[-.6,-.6,1.45,1.45]:[sw,-sw,-sw,sw];f.legs.forEach((l,i)=>l.rotation.x=lerp(l.rotation.x,T[i],k));f.body.position.y=air||sl?0:Math.abs(Math.sin(s.ph))*.06;f.body.scale.y+=((sl?.6:1)-f.body.scale.y)*k;f.body.rotation.x=lerp(f.body.rotation.x,air?-.1:sl?.35:-.14,Math.min(1,dt*10));f.head.rotation.x=Math.sin(s.ph*2)*.04;return;}
     f.legs.forEach((l,i)=>{const ph=s.ph+(i%2?Math.PI:0)+(i>1?Math.PI/2:0);l.rotation.x=lerp(l.rotation.x,air?(i<2?-1:1)*.9:Math.sin(ph)*.95,Math.min(1,dt*20));});
     f.body.position.y=air||sl?0:Math.abs(Math.sin(s.ph))*.07;f.body.scale.y+=((sl?.55:1)-f.body.scale.y)*Math.min(1,dt*18);
     f.body.rotation.x=lerp(f.body.rotation.x,air?(s.vy>0?-.25:.2):sl?.12:0,Math.min(1,dt*10));f.tail.rotation.y=Math.sin(s.ph*.5)*.35;f.tail.rotation.x=lerp(f.tail.rotation.x,air?.4:0,Math.min(1,dt*8));f.head.rotation.x=Math.sin(s.ph*2)*.04;},
@@ -3250,10 +3272,10 @@ const Runner={id:'runner',name:'Sprint des Bois',cursor:'default',bloom:.55,
     this.chaseHud();},
   ghostUpd(dt){const mp=FG.mp;if(!mp||!mp.active)return;const others=mp.others(),seen={};
     for(const o of others){const g=o.g;if(!g||g.mid!==mp.mid||g.d===undefined)continue;seen[o.peer]=1;let gh=this.ghosts[o.peer];
-      if(!gh){const f=makeFox(new THREE.Color(o.c||'#8fe3ff').getHex());const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(256,64,c2=>{c2.fillStyle='rgba(7,18,26,.75)';c2.fillRect(0,0,256,64);c2.fillStyle=o.c||'#8fe3ff';c2.font='bold 34px sans-serif';c2.textAlign='center';c2.textBaseline='middle';c2.fillText((o.n||'Joueur').slice(0,14),128,34);}),transparent:true,depthTest:false}));
+      if(!gh){const f=makeZobi(new THREE.Color(o.c||'#8fe3ff').getHex());const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(256,64,c2=>{c2.fillStyle='rgba(7,18,26,.75)';c2.fillRect(0,0,256,64);c2.fillStyle=o.c||'#8fe3ff';c2.font='bold 34px sans-serif';c2.textAlign='center';c2.textBaseline='middle';c2.fillText((o.n||'Joueur').slice(0,14),128,34);}),transparent:true,depthTest:false}));
         tag.scale.set(1.6,.4,1);tag.position.y=2;f.root.add(tag);this.scene.add(f.root);gh=this.ghosts[o.peer]={...f,x:0};}
       const dz=-(g.d-this.s.dist);gh.root.visible=!g.x&&dz>-70&&dz<1.2;gh.x=lerp(gh.x,(g.ln||0)*2.2,Math.min(1,dt*8));gh.root.position.set(gh.x,g.y||0,dz);
-      gh.legs.forEach((l,i)=>l.rotation.x=Math.sin(this.s.t*12+(i%2?Math.PI:0))*.9);}
+      gh.legs.forEach((l,i)=>l.rotation.x=Math.sin(this.s.t*12+(i%2?Math.PI:0)+(i>1?Math.PI:0))*.9);}
     for(const k in this.ghosts)if(!seen[k]){this.scene.remove(this.ghosts[k].root);delete this.ghosts[k];}},
   update(dt,st){const s=this.s,f=this.fox,w=this.W();s.t+=dt;
     if(st==='intro'){this.animFox(dt,9);this.moveWorld(dt*7);this.ambUpd(dt,dt*7);s.cd=lerp(s.cd,3,dt);this.chaser.g.position.set(this.chaser.kind==='lave'?0:1.75,0,this.chaser.kind==='lave'?3.2:2.8);this.chaser.g.rotation.y=this.chaser.kind==='lave'?0:-.45;this.chaser.anim(s.t,9,0);this.cam(dt);this.parts.update(dt);this.dust.update(dt);return;}
@@ -6606,7 +6628,7 @@ const Defense={id:'defense',name:'Gardiens de la Cabane',cursor:'crosshair',bloo
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const LW=4.3,LCH=50;
 const Luge={id:'luge',name:'Descente des Cimes',cursor:'default',bloom:.28,bloomTh:.97,grade:{sat:1.08,con:1.08,vig:.32},
-  tagline:'Une luge, un renard et une piste glacée qui serpente dans la montagne. Penchez-vous dans les virages, passez entre les portes pour gagner du temps et décollez sur les tremplins.',
+  tagline:'Une luge, Zobi et une piste glacée qui serpente dans la montagne. Penchez-vous dans les virages, passez entre les portes pour gagner du temps et décollez sur les tremplins.',
   howto:[['← →  ou  Q D','Se pencher pour tourner'],['Tactile','Maintenez le côté gauche ou droit de l’écran'],['↓  ou  S','Freiner'],['Portes dorées','+3 secondes'],['Arbres, rochers, bonhommes','−3 secondes et ralentissement']],
   seeds(score){return score/150+this.s.gates*.5;},
   build(){const sc=this.scene=new THREE.Scene();sc.background=skyTex('#0c1530','#3a4f80','#a8b8d8',160);sc.fog=new THREE.Fog(0x9aaccc,40,170);
@@ -6628,9 +6650,9 @@ const Luge={id:'luge',name:'Descente des Cimes',cursor:'default',bloom:.28,bloom
     [-1,1].forEach(s=>{const pts=[];for(let i=0;i<=12;i++){const t=i/12;pts.push(new V3(s*.32,.05+(t>.8?Math.pow((t-.8)/.2,2)*.35:0),.75-t*1.6));}const run=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.03,6),new THREE.MeshStandardMaterial({color:0xc8ccd2,metalness:.8,roughness:.3}));body.add(run);
       for(let k=0;k<3;k++){const st=new THREE.Mesh(new THREE.BoxGeometry(.05,.18,.05),W2);st.position.set(s*.32,.16,.5-k*.5);body.add(st);}});
     for(let k=0;k<5;k++){const sl=new THREE.Mesh(new THREE.BoxGeometry(.78,.04,.2),W2);sl.position.set(0,.26,.55-k*.26);body.add(sl);}
-    const fox=this.fox=makeFox();fox.root.scale.setScalar(.8);fox.root.position.set(0,.06,.18);body.add(fox.root);fox.body.rotation.x=-.12;fox.legs.forEach((l,i)=>{l.rotation.x=i<2?-1.25:-1.45;});fox.tail.rotation.x=.9;
-    const scarf=new THREE.Mesh(new THREE.TorusGeometry(.2,.06,8,16),new THREE.MeshStandardMaterial({color:0xd8202c,roughness:.7}));scarf.rotation.x=Math.PI/2;scarf.position.set(0,.98*.8+.06,-.25);body.add(scarf);
-    this.scarfTail=new THREE.Mesh(new THREE.BoxGeometry(.1,.03,.45),scarf.material);this.scarfTail.position.set(.08,.84,.05);body.add(this.scarfTail);
+    const fox=this.fox=makeZobi();fox.root.scale.setScalar(.8);fox.root.position.set(0,-.3,.3);body.add(fox.root);fox.body.rotation.x=-.05;fox.legs.forEach((l,i)=>{l.rotation.x=i<2?1.15:1.5;});
+    const scarf=new THREE.Mesh(new THREE.TorusGeometry(.2,.06,8,16),new THREE.MeshStandardMaterial({color:0xd8202c,roughness:.7}));scarf.rotation.x=Math.PI/2;scarf.position.set(0,1.3*.8-.3,.3);scarf.scale.setScalar(.85);body.add(scarf);
+    this.scarfTail=new THREE.Mesh(new THREE.BoxGeometry(.1,.03,.45),scarf.material);this.scarfTail.position.set(.08,.74,.5);body.add(this.scarfTail);
     sled.traverse(o=>{if(o.isMesh)o.castShadow=true;});sc.add(sled);
     // neige qui tombe
     const N=this.snowN=700,sp=this.snowP=new Float32Array(N*3);this.snowB=[];for(let i=0;i<N;i++)this.snowB.push([rnd(-30,30),rnd(-2,22),rnd(-60,10),rnd(.5,1.5)]);
@@ -6832,7 +6854,7 @@ const RW=5.2,RCH=50,RLEN=1500;
 function makeCanoe(col,fox){const g=new THREE.Group(),b=new THREE.Group();b.position.y=.2;g.add(b);const hullM=new THREE.MeshStandardMaterial({color:col,roughness:.45}),inM=new THREE.MeshStandardMaterial({color:0x5a3a22,roughness:.8});
   const hull=new THREE.Mesh(new THREE.SphereGeometry(1,24,12,0,Math.PI*2,Math.PI/2,Math.PI/2),hullM);hull.material.side=THREE.DoubleSide;hull.scale.set(.44,.34,1.35);b.add(hull);
   const rim=new THREE.Mesh(new THREE.TorusGeometry(1,.035,6,32),inM);rim.scale.set(.42,1.3,1);rim.rotation.x=Math.PI/2;rim.position.y=.01;b.add(rim);
-  let pad=null,P=null;if(fox){P=makeFox();P.root.scale.setScalar(.72);P.root.position.set(0,-.1,.25);P.legs.forEach(l=>l.rotation.x=-1.4);b.add(P.root);}
+  let pad=null,P=null;if(fox){P=makeZobi();P.root.scale.setScalar(.72);P.root.position.set(0,-.42,.25);P.legs.forEach((l,i)=>l.rotation.x=i<2?1.25:1.5);b.add(P.root);}
   else{const m=new THREE.MeshStandardMaterial({color:col,roughness:.6});const t=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,.5,10),m);t.position.set(0,.3,.2);b.add(t);const h=new THREE.Mesh(new THREE.SphereGeometry(.16,12,10),new THREE.MeshStandardMaterial({color:0xf0d8b0}));h.position.set(0,.68,.2);b.add(h);const hm=new THREE.Mesh(new THREE.SphereGeometry(.17,12,8,0,6.28,0,1.6),new THREE.MeshPhysicalMaterial({color:0xf6ecd8,clearcoat:1,roughness:.3}));hm.position.set(0,.7,.2);b.add(hm);}
   const paddle=new THREE.Group();paddle.position.set(0,.5,.05);const sh=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,1.7,6),inM);sh.rotation.z=Math.PI/2;paddle.add(sh);[-1,1].forEach(s=>{const bl=new THREE.Mesh(new THREE.BoxGeometry(.3,.02,.16),new THREE.MeshStandardMaterial({color:0xffc14d,roughness:.5}));bl.position.x=s*.85;paddle.add(bl);});b.add(paddle);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});return{g,b,paddle,fox:P};}
