@@ -7281,7 +7281,7 @@ function render(){if(!mv)return;let h='';
     const ok=P2P.supported();
     h+=`<div class="mon">
       <div class="mcard hl"><b>Créer un salon</b><span>Vous recevez un code à 4 caractères à donner à vos amis. Vous choisissez le jeu, le format, et lancez les manches.</span><button class="btn big" data-m="screate"${busy?' disabled':''}>${busy==='c'?'Création du salon…':'Créer un salon'}</button></div>
-      <div class="mcard"><b>Rejoindre un salon</b><span>Tapez le code donné par l’hôte.</span><div class="mjoin"><input id="mCode" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" inputmode="text" value="${esc(viewArg||'')}"><button class="btn alt" data-m="sjoin"${busy?' disabled':''}>${busy==='j'?'Connexion…':'Rejoindre'}</button></div></div></div>
+      <div class="mcard"><b>Rejoindre un salon</b><span>Tapez le code donné par l’hôte.</span><div class="mjoin"><input id="mCode" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" inputmode="text" value="${esc(viewArg||'')}"><button class="btn alt" data-m="sjoin"${busy?' disabled':''}>${busy==='j'?'Connexion… (jusqu’à 20 s)':'Rejoindre'}</button></div></div></div>
       ${window.claude?`<div class="mcard hl" style="border-color:#ffc14d"><b>Pour jouer avec des amis qui n’ont pas Claude</b><span>Dans la version Claude, les codes de salon ne marchent que pour les amis connectés à Claude et invités par e-mail. Sur le site du jeu, ils marchent pour tout le monde : ouvrez-le, créez le salon là-bas, et envoyez le lien <b>${FG_SITE.replace('https://','')}</b> à vos amis.</span>${SITE_BTN}</div>`:''}
       ${err?`<p class="merr">${esc(err)}</p>`:''}
       <details class="mclaude"${showInv?' open':''}><summary>Le code ne fonctionne pas ? Méthode de secours par invitation</summary>
@@ -7393,38 +7393,94 @@ function copyText(t,btn){const ok=()=>{if(btn){const o=btn.dataset.lbl||btn.text
 function shareText(t,btn,ans){const msg=ans?'Voici ma réponse pour ta partie Forest Games, colle-la dans « Réponse de votre ami » :\n'+t:'Rejoins ma partie Forest Games ! Ouvre le jeu, va dans « Jouer à plusieurs » → « En ligne » → « J’ai reçu une invitation » et colle ce code :\n'+t;
   if(navigator.share){navigator.share({text:msg}).catch(()=>copyText(msg,btn));}else copyText(msg,btn);}
 /* --- Salons à code (PeerJS) : un code de 4 caractères, l'autre joueur le tape et rejoint --- */
-const PJ=(()=>{const PRE='forestgames-fz-',ok=()=>typeof window.Peer==='function';
-  const opts=()=>Object.assign({debug:0,config:{iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun.cloudflare.com:3478']},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}]}},window.__PJ_OPTS||{});
+const PJ=(()=>{const PRE='forestgames-fz-',hasP=()=>typeof window.Peer==='function'&&!window.__PJ_OFF,ok=()=>hasP()||typeof WebSocket==='function';
+  const rid=()=>Math.random().toString(36).slice(2,9);
+  const opts=()=>Object.assign({debug:0,config:{iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun.cloudflare.com:3478']},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}]}},window.__PJ_OPTS||{});
+  /* --- relais de secours : petit client MQTT sur WebSocket (marche même quand la connexion directe est bloquée par le réseau) --- */
+  const BROKERS=()=>window.__MQ_URLS||['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/mqtt'];
+  const TE=new TextEncoder(),TD=new TextDecoder();
+  const str=s=>{const b=TE.encode(s),o=new Uint8Array(b.length+2);o[0]=b.length>>8;o[1]=b.length&255;o.set(b,2);return o;};
+  const pkt=(h,parts)=>{const n=parts.reduce((a,p)=>a+p.length,0);let L=n;const lb=[];do{let x=L%128;L=Math.floor(L/128);if(L>0)x|=128;lb.push(x);}while(L>0);const o=new Uint8Array(1+lb.length+n);o[0]=h;o.set(lb,1);let k=1+lb.length;for(const p of parts){o.set(p,k);k+=p.length;}return o;};
+  function mq(onMsg){return new Promise((res,rej)=>{const urls=BROKERS();let i=0;
+    const tryNext=()=>{if(i>=urls.length){rej({code:'mq'});return;}const url=urls[i++];let ws,done=false,buf=new Uint8Array(0),ping=0,pid=1;
+      const t=setTimeout(()=>fail(),5000);
+      const fail=()=>{if(done)return;done=true;clearTimeout(t);try{ws.close();}catch(_){}tryNext();};
+      const C={closed:false,onclose:null,
+        raw(b){try{if(ws.readyState===1)ws.send(b);}catch(_){}},
+        sub(topic){pid=pid%60000+1;this.raw(pkt(0x82,[new Uint8Array([pid>>8,pid&255]),str(topic),new Uint8Array([0])]));},
+        pub(topic,obj){this.raw(pkt(0x30,[str(topic),TE.encode(JSON.stringify(obj))]));},
+        close(){this.closed=true;clearInterval(ping);try{this.raw(new Uint8Array([0xe0,0]));ws.close();}catch(_){}}};
+      try{ws=new WebSocket(url,['mqtt']);}catch(e){fail();return;}
+      ws.binaryType='arraybuffer';
+      ws.onopen=()=>C.raw(pkt(0x10,[str('MQTT'),new Uint8Array([4,2,0,30]),str('fgz'+rid()+rid())]));
+      ws.onmessage=e=>{const d=new Uint8Array(e.data),nb=new Uint8Array(buf.length+d.length);nb.set(buf);nb.set(d,buf.length);buf=nb;
+        for(;;){if(buf.length<2)return;let len=0,mul=1,k=1,b;do{if(k>=buf.length)return;b=buf[k++];len+=(b&127)*mul;mul*=128;}while(b&128);if(buf.length<k+len)return;
+          const h0=buf[0],type=h0>>4,body=buf.slice(k,k+len);buf=buf.slice(k+len);
+          if(type===2){if(!done){done=true;clearTimeout(t);if(body[1]!==0){try{ws.close();}catch(_){}tryNext();return;}ping=setInterval(()=>C.raw(new Uint8Array([0xc0,0])),20000);res(C);}}
+          else if(type===3){const tl=(body[0]<<8)|body[1];const topic=TD.decode(body.subarray(2,2+tl));let o=2+tl;if((h0>>1)&3)o+=2;let m=null;try{m=JSON.parse(TD.decode(body.subarray(o)));}catch(_){}if(m)try{onMsg(topic,m);}catch(_){}}}};
+      ws.onerror=()=>{};
+      ws.onclose=()=>{clearInterval(ping);if(!done){fail();return;}if(!C.closed&&C.onclose)C.onclose();};};
+    tryNext();});}
   function base(){const R={hs:[],errs:[],peers:[],me:{},myId:'',closed:false,
     emit(){const ch={peers:this.peers,joined:[],left:[],updated:[]};setTimeout(()=>this.hs.forEach(f=>{try{f(ch);}catch(e){}}),0);},
     onPeers(f,e){this.hs.push(f);if(e)this.errs.push(e);this.emit();return()=>{this.hs=this.hs.filter(x=>x!==f);};},
     fail(msg){if(this.closed)return;this.closed=true;this.errs.forEach(f=>{try{f({code:'upstream_error',message:msg});}catch(e){}});},
     peer(id,presence,me){return Object.freeze({peer:id,by:null,isMe:!!me,sameTab:!!me,kind:'viewer',guest:false,presence:presence||{},updatedAt:Date.now()});},
     connected(){return!this.closed;},on(){return()=>{};}};return R;}
-  function host(code){return new Promise((res,rej)=>{let done=false;const R=base();R.pjHost=true;R.myId='h'+Math.random().toString(36).slice(2,9);const conns=new Map();let bt=0,peer;
-    try{peer=new Peer(PRE+code,opts());}catch(e){rej({code:'unsupported'});return;}
-    const t=setTimeout(()=>{if(done)return;done=true;try{peer.destroy();}catch(_){}rej({code:'timeout'});},8000);
-    const rebuild=()=>{R.peers=[R.peer(R.myId,R.me,true),...[...conns.values()].filter(c=>c.open).map(c=>R.peer(c.id,c.presence,false))];R.emit();
-      if(!bt)bt=setTimeout(()=>{bt=0;const msg={t:'state',peers:[{id:R.myId,p:R.me},...[...conns.values()].filter(c=>c.open).map(c=>({id:c.id,p:c.presence}))]};conns.forEach(c=>{if(c.open)try{c.conn.send(msg);}catch(_){}});},40);};
+  const topic=code=>'forestgames-fz/v1/'+code.toLowerCase()+'/';
+  /* --- hôte : écoute à la fois en direct (PeerJS) et sur le relais --- */
+  function host(code){return new Promise((res,rej)=>{let done=false,pending=0;const R=base();R.pjHost=true;R.myId='h'+rid();const conns=new Map();let bt=0,peer=null,M=null,hb=0;const T=topic(code);
+    const state=()=>({t:'state',peers:[{id:R.myId,p:R.me},...[...conns.values()].filter(c=>c.open).map(c=>({id:c.id,p:c.presence}))]});
+    const sendAll=()=>{const msg=state();conns.forEach(c=>{if(c.open)c.send(msg);});};
+    const rebuild=()=>{R.peers=[R.peer(R.myId,R.me,true),...[...conns.values()].filter(c=>c.open).map(c=>R.peer(c.id,c.presence,false))];R.emit();if(!bt)bt=setTimeout(()=>{bt=0;sendAll();},40);};
     R.presence=p=>{const m=Object.assign({},R.me);for(const k in p){if(p[k]===null)delete m[k];else m[k]=p[k];}R.me=m;rebuild();return Promise.resolve();};
-    R.leave=async()=>{R.closed=true;conns.forEach(c=>{try{c.conn.close();}catch(_){}});conns.clear();try{peer.destroy();}catch(_){}};
-    peer.on('open',()=>{if(done)return;done=true;clearTimeout(t);rebuild();res(R);});
-    peer.on('connection',conn=>{if(conns.size>=12){try{conn.close();}catch(_){}return;}const id='g'+Math.random().toString(36).slice(2,9),c={id,conn,presence:{},open:false};conns.set(id,c);
-      conn.on('open',()=>{c.open=true;try{conn.send({t:'you',id});}catch(_){}rebuild();});conn.on('data',m=>{if(m&&m.t==='p'&&m.p&&typeof m.p==='object'){c.presence=m.p;rebuild();}});
-      const drop=()=>{if(!conns.has(id))return;conns.delete(id);rebuild();};conn.on('close',drop);conn.on('error',drop);});
-    peer.on('disconnected',()=>{if(!R.closed)try{peer.reconnect();}catch(_){}});
-    peer.on('error',e=>{if(!done){done=true;clearTimeout(t);try{peer.destroy();}catch(_){}rej({code:e.type||'error'});}});});}
-  function guest(code){return new Promise((res,rej)=>{let done=false;const R=base();let peer,conn,st=0;
-    try{peer=new Peer(PRE+'j'+Math.random().toString(36).slice(2,12),opts());}catch(e){rej({code:'unsupported'});return;}
-    const t=setTimeout(()=>{if(done)return;done=true;try{peer.destroy();}catch(_){}rej({code:'timeout'});},9000);
+    R.leave=async()=>{R.closed=true;clearInterval(hb);conns.forEach(c=>c.kill());conns.clear();try{peer&&peer.destroy();}catch(_){}if(M)M.close();};
+    const t=setTimeout(()=>{if(done)return;done=true;R.leave();rej({code:'timeout'});},10000);
+    const finish=good=>{pending--;if(done)return;if(good){done=true;clearTimeout(t);rebuild();res(R);}else if(pending<=0){done=true;clearTimeout(t);R.leave();rej({code:'timeout'});}};
+    if(hasP()){pending++;try{peer=new Peer(PRE+code,opts());}catch(e){peer=null;}
+      if(!peer)finish(false);else{let pjOk=false;
+        peer.on('open',()=>{pjOk=true;finish(true);});
+        peer.on('connection',conn=>{if(conns.size>=12){try{conn.close();}catch(_){}return;}const id='g'+rid(),c={id,presence:{},open:false,send:m=>{try{conn.send(m);}catch(_){}},kill:()=>{try{conn.close();}catch(_){}}};conns.set(id,c);
+          conn.on('open',()=>{c.open=true;c.send({t:'you',id});rebuild();});conn.on('data',m=>{if(m&&m.t==='p'&&m.p&&typeof m.p==='object'){c.presence=m.p;rebuild();}});
+          const drop=()=>{if(!conns.has(id))return;conns.delete(id);rebuild();};conn.on('close',drop);conn.on('error',drop);});
+        peer.on('disconnected',()=>{if(!R.closed)try{peer.reconnect();}catch(_){}});
+        peer.on('error',e=>{if(e&&e.type==='unavailable-id'&&!done){done=true;clearTimeout(t);R.leave();rej({code:'unavailable-id'});return;}if(!pjOk){pjOk=true;finish(false);}});}}
+    pending++;
+    const onMq=(tp,m)=>{if(R.closed||!m||typeof m!=='object'||typeof m.g!=='string')return;let c=null;conns.forEach(x=>{if(x.mq===m.g)c=x;});
+      if(m.t==='hello'){if(!c){if(conns.size>=12)return;const id='g'+rid(),g=m.g;c={id,mq:g,presence:{},open:true,seen:0,send:o=>{if(M)M.pub(T+'g/'+g,o);},kill:()=>{if(M)M.pub(T+'g/'+g,{t:'bye'});}};conns.set(id,c);}c.seen=Date.now();c.send({t:'you',id:c.id});rebuild();}
+      else if(m.t==='p'&&c){c.seen=Date.now();if(m.p&&typeof m.p==='object'){c.presence=m.p;rebuild();}}
+      else if(m.t==='bye'&&c){conns.delete(c.id);rebuild();}};
+    const openMq=()=>mq(onMq).then(C=>{if(R.closed){C.close();return;}M=C;C.sub(T+'h');C.onclose=()=>{M=null;if(!R.closed)setTimeout(()=>{if(!R.closed)openMq().catch(()=>{});},1500);};return C;});
+    openMq().then(()=>finish(true),()=>finish(false));
+    hb=setInterval(()=>{const now=Date.now();let ch=false;conns.forEach((c,id)=>{if(c.mq&&now-c.seen>14000){conns.delete(id);ch=true;}});if(ch)rebuild();const msg=state();conns.forEach(c=>{if(c.mq&&c.open)c.send(msg);});},3000);});}
+  /* --- invité : connexion directe d'abord, puis relais ; on réessaie ~20 s (l'hôte peut avoir changé d'appli pour envoyer le code) --- */
+  function guestPJ(code){return new Promise((res,rej)=>{let done=false;const R=base();let peer,conn,st=0;
+    try{peer=new Peer(PRE+'j'+rid()+rid(),opts());}catch(e){rej({code:'unsupported'});return;}
+    const t=setTimeout(()=>{if(done)return;done=true;try{peer.destroy();}catch(_){}rej({code:'timeout'});},7000);
     const send=()=>{st=0;if(conn&&conn.open)try{conn.send({t:'p',p:R.me});}catch(_){}};
     R.presence=p=>{const m=Object.assign({},R.me);for(const k in p){if(p[k]===null)delete m[k];else m[k]=p[k];}R.me=m;R.peers=R.peers.map(x=>x.sameTab?R.peer(x.peer,m,true):x);if(!R.peers.some(x=>x.sameTab)&&R.myId)R.peers.push(R.peer(R.myId,m,true));R.emit();if(!st)st=setTimeout(send,30);return Promise.resolve();};
     R.leave=async()=>{R.closed=true;try{conn&&conn.close();}catch(_){}try{peer.destroy();}catch(_){}};
     peer.on('open',()=>{conn=peer.connect(PRE+code,{reliable:true,serialization:'json'});
       conn.on('data',m=>{if(!m)return;if(m.t==='you'){R.myId=m.id;if(!done){done=true;clearTimeout(t);res(R);}send();}
         else if(m.t==='state'&&Array.isArray(m.peers)){R.peers=m.peers.slice(0,24).map(x=>x.id===R.myId?R.peer(x.id,R.me,true):R.peer(String(x.id),x.p&&typeof x.p==='object'?x.p:{},false));if(R.myId&&!R.peers.some(p=>p.sameTab))R.peers.push(R.peer(R.myId,R.me,true));R.emit();}});
-      conn.on('close',()=>R.fail('L’hôte a fermé le salon.'));conn.on('error',()=>{if(!done){done=true;clearTimeout(t);rej({code:'peer-unavailable'});}});});
+      conn.on('close',()=>R.fail('L’hôte a fermé le salon.'));conn.on('error',()=>{if(!done){done=true;clearTimeout(t);try{peer.destroy();}catch(_){}rej({code:'peer-unavailable'});}});});
     peer.on('error',e=>{if(!done){done=true;clearTimeout(t);try{peer.destroy();}catch(_){}rej({code:e.type||'error'});}else if(e.type==='peer-unavailable')R.fail('L’hôte a fermé le salon.');});});}
+  function guestMQ(code,wait){return new Promise((res,rej)=>{let done=false,M=null,st=0,last=Date.now(),hi=0,wd=0;const R=base();const g='q'+rid()+rid(),T=topic(code);
+    const send=()=>{st=0;if(M)M.pub(T+'h',{t:'p',g,p:R.me});};
+    R.presence=p=>{const m=Object.assign({},R.me);for(const k in p){if(p[k]===null)delete m[k];else m[k]=p[k];}R.me=m;R.peers=R.peers.map(x=>x.sameTab?R.peer(x.peer,m,true):x);if(!R.peers.some(x=>x.sameTab)&&R.myId)R.peers.push(R.peer(R.myId,m,true));R.emit();if(!st)st=setTimeout(send,30);return Promise.resolve();};
+    R.leave=async()=>{R.closed=true;clearInterval(hi);clearInterval(wd);if(M){M.pub(T+'h',{t:'bye',g});setTimeout(()=>M&&M.close(),150);}};
+    const t=setTimeout(()=>{if(done)return;done=true;R.leave();rej({code:'peer-unavailable'});},wait);
+    const onMsg=(tp,m)=>{if(R.closed)return;last=Date.now();
+      if(m.t==='you'&&typeof m.id==='string'){R.myId=m.id;if(!done){done=true;clearTimeout(t);clearInterval(hi);res(R);}send();}
+      else if(m.t==='state'&&Array.isArray(m.peers)&&R.myId){R.peers=m.peers.slice(0,24).map(x=>x.id===R.myId?R.peer(x.id,R.me,true):R.peer(String(x.id),x.p&&typeof x.p==='object'?x.p:{},false));if(!R.peers.some(p=>p.sameTab))R.peers.push(R.peer(R.myId,R.me,true));R.emit();}
+      else if(m.t==='bye'&&done)R.fail('L’hôte a fermé le salon.');};
+    const openMq=()=>mq(onMsg).then(C=>{if(R.closed){C.close();return;}M=C;C.sub(T+'g/'+g);C.pub(T+'h',{t:'hello',g});C.onclose=()=>{M=null;if(!R.closed)setTimeout(()=>{if(!R.closed)openMq().then(()=>{if(R.myId)M&&M.pub(T+'h',{t:'hello',g});}).catch(()=>{});},1500);};});
+    openMq().then(()=>{hi=setInterval(()=>{if(M&&!done)M.pub(T+'h',{t:'hello',g});},1500);
+      wd=setInterval(()=>{if(!done)return;if(M)send();if(Date.now()-last>16000)R.fail('Connexion avec l’hôte perdue.');},3000);},
+      ()=>{if(!done){done=true;clearTimeout(t);rej({code:'network'});}});});}
+  async function guest(code){let why='';
+    if(hasP()){try{return await guestPJ(code);}catch(e){why=e&&e.code||'';}}
+    try{return await guestMQ(code,why==='peer-unavailable'?20000:16000);}catch(e){throw{code:e&&e.code==='network'&&why!=='peer-unavailable'?'network':'peer-unavailable'};}}
   return{ok,host,guest};})();
 FG.PJ=PJ;
 /* --- en ligne --- */
@@ -7468,7 +7524,7 @@ async function joinSalon(c){if(busy)return;busy='j';err='';render();let r=null,w
   if(r){busy=false;net='pj';code=c;await attach(r,false);go('lobby');return;}
   const cr=await getRoom();busy=false;
   if(cr&&why!=='peer-unavailable'){await joinRoom(c,false);setTimeout(()=>{if(net===''&&R&&!players().some(p=>p.presence.h===1&&!p.sameTab)){leaveRoom();err='Salon introuvable : vérifiez le code.';render();}},4500);return;}
-  err=why==='peer-unavailable'?'Salon introuvable : vérifiez le code. L’hôte doit garder le jeu ouvert.':'Connexion impossible au serveur de salons. Essayez la méthode de secours ci-dessous.';if(why!=='peer-unavailable')showInv=true;render();}
+  err=why==='peer-unavailable'?'Salon introuvable : vérifiez le code, et que l’hôte a bien le jeu ouvert à l’écran (pas en arrière-plan).':'Connexion impossible au serveur de salons. Essayez la méthode de secours ci-dessous.';if(why!=='peer-unavailable')showInv=true;render();}
 function setM(patch){if(!isHost||!R)return;lastM=Object.assign({},lastM||{},patch);R.presence({m:lastM}).catch(()=>{});lastSig='';render();}
 function startOnline(m){playedMid=m.mid;MP.mode='online';MP.mid=m.mid;MP.active=true;myG={mid:m.mid,s:0};R.presence({p:m.mid,g:myG}).catch(()=>{});
   const g=['runner','archery','stack','golf','bowling','penalty','kart','luge','basket','boat','defense','owl','brick','mole','snake','simon','hockey','merge','axe','berry','snow','wordbomb','jump','connect','pairs','maze','horde','fruits'].includes(m.g)?m.g:'runner',w=WORLDS.find(x=>x.id===m.w)?m.w:'foret';launch(g,w,(+m.seed|0)||1);}
