@@ -1,14 +1,15 @@
 {
   "name": "Forest Zip",
   "short_name": "Forest Zip",
+  "id": "./",
   "description": "Relie les nombres dans l'ordre en couvrant toute la grille.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b2116",
-  "theme_color": "#0b2116",
+  "background_color": "#0a2f20",
+  "theme_color": "#0a2f20",
   "icons": [
     {
       "src": "icons/icon-192.png",

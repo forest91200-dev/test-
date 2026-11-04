@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b2116">
+<meta name="theme-color" content="#0a2f20">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Forest Zip">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <style>
 @font-face{font-family:'Unbounded';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/unbounded-latin-500-normal.woff2) format('woff2')}
 @font-face{font-family:'Unbounded';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/unbounded-latin-700-normal.woff2) format('woff2')}
@@ -145,6 +146,12 @@ details.rules{padding:12px 16px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion: reduce){ .card,.stars span.on{animation:none} .bar,button,body,#scene{transition:none} }
 </style>
+<style>
+.foot{justify-content:space-between;align-items:center;gap:10px}
+.offline-state{font-size:12.5px;font-weight:700;color:var(--good);background:var(--glass);border:1px solid var(--glass-line);border-radius:999px;padding:5px 11px}
+.toast{position:fixed;left:50%;width:max-content;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;max-width:calc(100% - 32px);background:var(--card);color:var(--ink);border:1px solid var(--glass-line);box-shadow:var(--shadow);border-radius:14px;padding:12px 16px;font-size:14px;font-weight:700;display:flex;gap:10px;align-items:center;animation:pop .3s ease-out}
+.toast b{color:var(--good)}
+</style>
 </head>
 <body>
 
@@ -197,7 +204,7 @@ details.rules{padding:12px 16px}
     <p>Trois étoiles par niveau : finir, sans indice, et sous le temps objectif.</p>
   </details>
 
-  <div class="foot"><button id="muteBtn" aria-pressed="false">Son : activé</button></div>
+  <div class="foot"><span class="offline-state" id="offlineState" hidden>✓ Jouable hors connexion</span><button id="muteBtn" aria-pressed="false">Son : activé</button></div>
 </main>
 
 <div class="sheet" id="sheet" hidden>
@@ -1601,10 +1608,35 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 })();
 </script>
 
+
+<div class="toast" id="offlineToast" hidden><b>✓</b><span>Prêt : tu peux maintenant jouer sans connexion.</span></div>
 <script>
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
-}
+(function () {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  var shown = false;
+  function markReady() {
+    if (!window.caches) return;
+    caches.keys().then(function (keys) {
+      var k = keys.filter(function (n) { return n.indexOf('forest-zip-') === 0; })[0];
+      if (!k) return null;
+      return caches.open(k).then(function (c) { return c.match('./index.html'); });
+    }).then(function (hit) {
+      if (!hit) return;
+      document.getElementById('offlineState').hidden = false;
+      var first = true;
+      try { first = !localStorage.getItem('fz-offline-ready'); localStorage.setItem('fz-offline-ready', '1'); } catch (e) {}
+      if (first && !shown) {
+        shown = true;
+        var t = document.getElementById('offlineToast'); t.hidden = false;
+        setTimeout(function () { t.hidden = true; }, 4500);
+      }
+    }).catch(function () {});
+  }
+  navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.type === 'offline-ready') markReady(); });
+  navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; }).then(markReady).catch(function () {});
+  markReady();
+})();
 </script>
+
 </body>
 </html>
