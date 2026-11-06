@@ -1,6 +1,6 @@
 // Forest Zip : garde tout le jeu sur l'appareil pour jouer sans connexion.
 // Pour publier une mise à jour, augmente le numéro de version.
-const VERSION = 'forest-zip-v2';
+const VERSION = 'forest-zip-v3';
 const CORE = ["./", "./index.html"];
 const ASSETS = [
   "./manifest.webmanifest",
